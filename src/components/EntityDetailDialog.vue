@@ -30,7 +30,8 @@ const theme = computed(() => {
 
 // ---- โหมดตื่นรู้ (ปุ่มใต้รูป) ----
 const awaken = ref(false)
-watch(() => props.item, () => { awaken.value = false })
+const tab = ref('stats') // panel ที่กำลังดู: 'stats' | 'skills' (ฮีโร่)
+watch(() => props.item, () => { awaken.value = false; tab.value = 'stats' })
 const hasAwaken = computed(() => {
   const it = props.item || {}
   if (props.kind !== 'hero') return false
@@ -149,9 +150,28 @@ function bonusRows(arr) {
 
       <!-- ===== BODY ===== -->
       <q-card-section class="detail-body scroll">
+        <!-- ปุ่ม panel สลับ สเตตัส / สกิล (ฮีโร่) -->
+        <q-btn-toggle
+          v-if="kind === 'hero' && skills.length"
+          v-model="tab"
+          spread
+          no-caps
+          unelevated
+          class="panel-toggle q-mb-md"
+          toggle-color="primary"
+          color="grey-9"
+          text-color="grey-5"
+          :options="[
+            { label: '📊 สเตตัส', value: 'stats' },
+            { label: '🎯 สกิล', value: 'skills' },
+          ]"
+        />
+
         <!-- สเตตัส -->
-        <template v-if="primaryStats.length || secondaryStats.length">
-          <div class="section-title">📊 {{ isAwaken ? 'สเตตัสตื่นรู้' : 'สเตตัสพื้นฐาน' }}</div>
+        <template v-if="(primaryStats.length || secondaryStats.length) && (kind !== 'hero' || tab === 'stats')">
+          <div class="section-title">
+            📊 {{ isAwaken ? 'สเตตัสตื่นรู้' : 'สเตตัสพื้นฐาน' }}
+          </div>
           <div class="stat-primary-grid q-mb-sm">
             <div v-for="st in primaryStats" :key="st.key" class="stat-primary" :style="{ borderColor: theme.color + '55' }">
               <div class="stat-ico" :style="{ background: theme.color + '22' }">{{ st.icon }}</div>
@@ -171,8 +191,7 @@ function bonusRows(arr) {
         </template>
 
         <!-- สกิล (ฮีโร่) -->
-        <template v-if="skills.length">
-          <div class="section-title">🎯 สกิล</div>
+        <template v-if="skills.length && (kind !== 'hero' || tab === 'skills')">
           <div v-for="sk in skills" :key="sk.key" class="skill-card" :style="{ borderLeftColor: theme.color }">
             <div class="skill-head">
               <img v-if="sk.icon" :src="sk.icon" @error="onErr" class="skill-ico" :style="{ borderColor: theme.color + '66' }" />
@@ -352,6 +371,14 @@ function bonusRows(arr) {
 }
 .section-title:first-child {
   margin-top: 0;
+}
+
+/* ปุ่ม panel สลับ สเตตัส/สกิล */
+.panel-toggle {
+  border: 1px solid #262d38;
+  border-radius: 10px;
+  overflow: hidden;
+  font-weight: 700;
 }
 
 /* รูปเซ็ตหลายมุม */
