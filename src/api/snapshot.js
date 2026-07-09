@@ -20,12 +20,30 @@ export async function fetchSnapshot() {
   }
 }
 
+// ตัดข้อมูลอ่อนไหวออกก่อนเผยแพร่ (accessCode = รหัสเข้า portal ของลูกกิล ซึ่งแอปนี้ไม่ใช้แล้ว)
+// สำคัญมาก: snapshot เป็นไฟล์ public ใครเปิดก็เห็น ห้ามมี credential หลุด
+export function sanitizeForPublish(data) {
+  if (!data) return data
+  const scrub = (m) => {
+    if (!m || typeof m !== 'object') return m
+    const { accessCode, ...rest } = m
+    return rest
+  }
+  const clone = { ...data }
+  if (Array.isArray(clone.guilds)) {
+    clone.guilds = clone.guilds.map((g) => ({ ...g, members: (g.members || []).map(scrub) }))
+  }
+  if (Array.isArray(clone.guildMembers)) clone.guildMembers = clone.guildMembers.map(scrub)
+  return clone
+}
+
 // สร้างไฟล์ data.json ให้ดาวน์โหลด (admin เอาไปวางใน public/ หรืออัปโหลดขึ้นโฮสต์)
 export function downloadSnapshot(rawData) {
+  const clean = sanitizeForPublish(rawData || {})
   const payload = {
     __snapshot: true,
     __publishedAt: (rawData && rawData.timestamp) || 0,
-    ...rawData,
+    ...clean,
   }
   const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)

@@ -131,7 +131,7 @@ function normalizeMember(m) {
   return {
     id: String(m.id ?? ''),
     name: m.name || '',
-    accessCode: m.accessCode || '',
+    // ไม่เก็บ accessCode — แอปนี้ตัด login แล้ว ไม่ควรถือ credential ไว้ใน client
     hero_list: m.hero_list || m.ownedHeroes || [],
     pet_list: m.pet_list || [],
     ring_list: m.ring_list || [],

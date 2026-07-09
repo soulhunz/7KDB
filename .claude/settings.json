@@ -17,7 +17,16 @@
       "Bash(pkill -f vite)",
       "Read(//c/Users/SoulH/.claude/projects/c--Users-SoulH-Documents-Project-vue-7KDB/memory/**)",
       "Bash(git add *)",
-      "Bash(git commit -q -m ' *)"
+      "Bash(git commit -q -m ' *)",
+      "Bash(curl -sL --post301 --post302 --post303 -X POST https://script.google.com/macros/s/AKfycbyxGb6jb_BotVYjJbPrnZ-SzoxWmHHR8QqP8mtbexQxuV6cP8ylhyobswJW6MdDxS85fQ/exec -H 'Content-Type: text/plain;charset=utf-8' --data-binary '{\"action\":\"getAllData\"}' -w '\\\\n[HTTP %{http_code}] [%{size_download} bytes] [%{time_total}s]\\\\n' -o /tmp/gas2.txt)",
+      "Read(//tmp/**)",
+      "Bash(node -e \"try{const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/tmp/gas2.txt','utf8'\\)\\);console.log\\('OK. keys:',Object.keys\\(d\\).join\\(', '\\)\\);console.log\\('heroes:',\\(d.heroes||[]\\).length,'pets:',\\(d.pets||[]\\).length,'rings:',\\(d.rings||[]\\).length,'guilds:',\\(d.guilds||[]\\).length,'timestamp:',d.timestamp\\);}catch\\(e\\){console.log\\('NOT JSON:',e.message\\)}\")",
+      "Bash(node -e ' *)",
+      "Bash(node \"C:/Users/SoulH/AppData/Local/Temp/claude/c--Users-SoulH-Documents-Project-vue-7KDB/0eeb2827-0074-4cf5-8c0f-1b447ab95a3a/scratchpad/gastest.mjs\")",
+      "Bash(node inspect.mjs)",
+      "Bash(node \"C:/Users/SoulH/AppData/Local/Temp/claude/c--Users-SoulH-Documents-Project-vue-7KDB/0eeb2827-0074-4cf5-8c0f-1b447ab95a3a/scratchpad/gensnapshot.mjs\")",
+      "Bash(curl -s \"http://localhost:5173/data.json\")",
+      "Bash(node -e \"let s='';process.stdin.on\\('data',c=>s+=c\\);process.stdin.on\\('end',\\(\\)=>{const d=JSON.parse\\(s\\);console.log\\('__snapshot:',d.__snapshot,'| heroes:',d.heroes.length,'pets:',d.pets.length,'rings:',d.rings.length,'guilds:',d.guilds.length,'skillLib:',d.skillLib.length\\);console.log\\('accessCode leak:',s.toLowerCase\\(\\).includes\\('accesscode'\\)?'YES ❌':'NO ✅'\\);}\\)\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\SoulH\\.claude\\projects\\c--Users-SoulH-Documents-Project-vue-7KDB\\memory"
