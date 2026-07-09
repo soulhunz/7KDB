@@ -19,7 +19,7 @@ const show = computed({
 const FALLBACK = 'https://placehold.co/160x160/0d1117/475569?text=%3F'
 const onErr = (e) => (e.target.src = FALLBACK)
 
-// ธีมสี (ฮีโร่/สัตว์ = ตามความหายาก, แหวน = ตามเกรด, เซ็ต = ส้ม)
+// ธีมสี
 const GRADE_COLOR = { 1: '#6b7280', 2: '#22c55e', 3: '#3b82f6', 4: '#a855f7', 5: '#f97316', 6: '#eab308' }
 const theme = computed(() => {
   const it = props.item || {}
@@ -28,43 +28,36 @@ const theme = computed(() => {
   return rarityThemeOf(it.rarity)
 })
 
-// ---- รูปทั้งหมดของเอนทิตี (ทำเป็น thumbnail กดสลับได้) ----
-const images = computed(() => {
+// ---- โหมดตื่นรู้ (ปุ่มใต้รูป) ----
+const awaken = ref(false)
+watch(() => props.item, () => { awaken.value = false })
+const hasAwaken = computed(() => {
   const it = props.item || {}
-  let list = []
-  if (props.kind === 'hero') {
-    list = [
-      { key: 'normal', label: '🧍 ปกติ', src: it.img },
-      { key: 'awaken', label: '🌟 ตื่นรู้', src: it.img2 },
-      { key: 'acc', label: '🗡️ อุปกรณ์', src: it.accImg },
-    ]
-  } else if (props.kind === 'equip') {
-    list = [
-      { key: 'front_phy', label: 'หน้า·กายภาพ', src: it.imgFrontPhysical },
-      { key: 'front_mag', label: 'หน้า·เวท', src: it.imgFrontMagic },
-      { key: 'back', label: 'ด้านหลัง', src: it.imgBack },
-      { key: 'main', label: 'หลัก', src: it.img },
-    ]
-  } else {
-    list = [{ key: 'main', label: '', src: it.img }]
-  }
-  return list.filter((x) => x.src && String(x.src).trim())
+  if (props.kind !== 'hero') return false
+  const b = it.baseStats || {}, a = it.awakenStats || {}
+  const statsDiffer = Object.keys(b).some((k) => a[k] !== undefined && a[k] !== b[k])
+  return !!(it.img2 && it.img2.trim()) || statsDiffer || !!(it.skillData?.aw?.img)
+})
+const isAwaken = computed(() => props.kind === 'hero' && awaken.value)
+
+const mainImg = computed(() => {
+  const it = props.item || {}
+  if (props.kind === 'hero') return isAwaken.value ? it.img2 || it.img : it.img
+  return it.img
 })
 
-const selectedKey = ref('normal')
-watch(
-  () => props.item,
-  () => { selectedKey.value = images.value[0]?.key || 'main' },
-  { immediate: true }
-)
-const mainImg = computed(
-  () => images.value.find((i) => i.key === selectedKey.value)?.src || images.value[0]?.src || props.item?.img
-)
+// รูปหลายมุมของเซ็ตอุปกรณ์ (โชว์ใหญ่ในเนื้อหา)
+const equipImages = computed(() => {
+  if (props.kind !== 'equip') return []
+  const it = props.item || {}
+  return [
+    { label: 'หน้า·กายภาพ', src: it.imgFrontPhysical },
+    { label: 'หน้า·เวท', src: it.imgFrontMagic },
+    { label: 'ด้านหลัง', src: it.imgBack },
+  ].filter((x) => x.src && String(x.src).trim())
+})
 
-// โหมดตื่นรู้ = เลือกรูปตื่นรู้อยู่ → ใช้ awakenStats + โชว์สกิลตื่นรู้
-const isAwaken = computed(() => props.kind === 'hero' && selectedKey.value === 'awaken')
-
-// สเตตัสที่แสดง (สลับตามโหมด)
+// ---- สเตตัส ----
 const statsSource = computed(() => {
   const it = props.item || {}
   if (props.kind === 'equip') return it.mainStats || {}
@@ -77,7 +70,7 @@ const secondaryStats = computed(() =>
   SECONDARY_STATS.filter((k) => statsSource.value[k] != null).map((k) => ({ key: k, ...STAT_META[k], value: statsSource.value[k] }))
 )
 
-// ---- สกิลฮีโร่ (จาก skillData + HTML text) ----
+// ---- สกิลฮีโร่ ----
 const skills = computed(() => {
   if (props.kind !== 'hero') return []
   const it = props.item || {}
@@ -118,20 +111,24 @@ function bonusRows(arr) {
           <div class="banner-portrait" :style="{ borderColor: theme.color, boxShadow: `0 0 22px ${theme.color}66` }">
             <img :src="mainImg || FALLBACK" @error="onErr" />
           </div>
-          <!-- แถบรูปย่อ กดสลับได้ -->
-          <div v-if="images.length > 1" class="thumb-row">
-            <button
-              v-for="im in images"
-              :key="im.key"
-              class="thumb"
-              :class="{ active: im.key === selectedKey }"
-              :style="im.key === selectedKey ? { borderColor: theme.color } : {}"
-              @click="selectedKey = im.key"
-            >
-              <img :src="im.src" @error="onErr" />
-              <span class="thumb-lbl">{{ im.label }}</span>
-            </button>
-          </div>
+          <!-- ปุ่มสลับ ปกติ / ตื่นรู้ ใต้รูป -->
+          <q-btn-toggle
+            v-if="hasAwaken"
+            v-model="awaken"
+            spread
+            no-caps
+            rounded
+            unelevated
+            size="sm"
+            class="awaken-toggle"
+            toggle-color="deep-purple-5"
+            color="dark"
+            text-color="grey-4"
+            :options="[
+              { label: '🧍 ปกติ', value: false },
+              { label: '🌟 ตื่นรู้', value: true },
+            ]"
+          />
         </div>
 
         <div class="banner-info">
@@ -145,13 +142,12 @@ function bonusRows(arr) {
             <q-badge v-if="item.attackType" color="teal" :label="item.attackType === 'physical' ? 'กายภาพ' : 'เวท'" />
           </div>
           <div v-if="item.affiliation" class="banner-affil">{{ item.affiliation }}</div>
-          <div v-if="isAwaken" class="awaken-tag">🌟 โหมดตื่นรู้</div>
         </div>
       </div>
 
       <!-- ===== BODY ===== -->
       <q-card-section class="detail-body scroll">
-        <!-- สเตตัส (ฮีโร่ / เซ็ต) -->
+        <!-- สเตตัส -->
         <template v-if="primaryStats.length || secondaryStats.length">
           <div class="section-title">📊 {{ isAwaken ? 'สเตตัสตื่นรู้' : 'สเตตัสพื้นฐาน' }}</div>
           <div class="stat-primary-grid q-mb-sm">
@@ -172,6 +168,12 @@ function bonusRows(arr) {
           </div>
         </template>
 
+        <!-- รูปอุปกรณ์ของฮีโร่ (ใหญ่) -->
+        <template v-if="kind === 'hero' && item.accImg">
+          <div class="section-title">🗡️ อุปกรณ์</div>
+          <img class="big-img" :src="item.accImg" @error="onErr" :style="{ borderColor: theme.color + '55' }" />
+        </template>
+
         <!-- สกิล (ฮีโร่) -->
         <template v-if="skills.length">
           <div class="section-title">🎯 สกิล</div>
@@ -179,10 +181,12 @@ function bonusRows(arr) {
             <div class="skill-head">
               <img v-if="sk.icon" :src="sk.icon" @error="onErr" class="skill-ico" :style="{ borderColor: theme.color + '66' }" />
               <div class="skill-ico skill-ico-empty" v-else>🎯</div>
-              <span class="skill-label">{{ sk.label }}</span>
-              <span v-if="sk.summary && sk.summary.hits" class="skill-meta">
-                🎯 {{ sk.summary.targets || 1 }} เป้า · {{ sk.summary.hits }} ครั้ง
-              </span>
+              <div class="skill-head-txt">
+                <span class="skill-label">{{ sk.label }}</span>
+                <span v-if="sk.summary && sk.summary.hits" class="skill-meta">
+                  🎯 {{ sk.summary.targets || 1 }} เป้า · {{ sk.summary.hits }} ครั้ง
+                </span>
+              </div>
             </div>
             <div v-if="sk.summary && sk.summary.scaling" class="skill-scaling">
               💢 ความเสียหาย: {{ sk.summary.scaling }}
@@ -208,8 +212,17 @@ function bonusRows(arr) {
           <div class="desc-box">{{ item.desc }}</div>
         </template>
 
-        <!-- เซ็ตอุปกรณ์: main stats + set bonus -->
+        <!-- เซ็ตอุปกรณ์ -->
         <template v-if="kind === 'equip'">
+          <template v-if="equipImages.length">
+            <div class="section-title">🖼️ รูปเซ็ต</div>
+            <div class="equip-img-row q-mb-md">
+              <div v-for="im in equipImages" :key="im.label" class="equip-img-item">
+                <img :src="im.src" @error="onErr" :style="{ borderColor: theme.color + '55' }" />
+                <div class="equip-img-lbl">{{ im.label }}</div>
+              </div>
+            </div>
+          </template>
           <template v-if="equipMain.length">
             <div class="section-title">📊 ค่าหลัก</div>
             <div class="stat-primary-grid q-mb-md">
@@ -249,7 +262,7 @@ function bonusRows(arr) {
   overflow: hidden;
 }
 
-/* ---- Banner (ส่วนหัวคงที่) ---- */
+/* ---- Banner ---- */
 .banner {
   position: relative;
   display: flex;
@@ -265,6 +278,7 @@ function bonusRows(arr) {
 }
 .banner-left {
   flex-shrink: 0;
+  width: 140px;
 }
 .banner-portrait {
   width: 140px;
@@ -280,50 +294,10 @@ function bonusRows(arr) {
   object-fit: cover;
   display: block;
 }
-/* แถบรูปย่อ */
-.thumb-row {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-  flex-wrap: wrap;
+.awaken-toggle {
+  margin-top: 10px;
   width: 140px;
-}
-.thumb {
-  position: relative;
-  width: 42px;
-  height: 42px;
-  border-radius: 8px;
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  overflow: hidden;
-  padding: 0;
-  cursor: pointer;
-  background: #000;
-  transition: transform 0.1s ease;
-}
-.thumb:hover {
-  transform: translateY(-2px);
-}
-.thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.thumb.active {
-  border-width: 2px;
-}
-.thumb-lbl {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  font-size: 7.5px;
-  line-height: 1.4;
-  text-align: center;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.65);
-  white-space: nowrap;
-  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 .banner-info {
   flex: 1;
@@ -343,19 +317,8 @@ function bonusRows(arr) {
   color: rgba(255, 255, 255, 0.8);
   margin-top: 6px;
 }
-.awaken-tag {
-  display: inline-block;
-  margin-top: 8px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #e9d5ff;
-  background: rgba(147, 51, 234, 0.35);
-  border: 1px solid rgba(216, 180, 254, 0.5);
-  padding: 2px 10px;
-  border-radius: 999px;
-}
 
-/* ---- Body (สกรอลได้) ---- */
+/* ---- Body ---- */
 .detail-body {
   flex: 1 1 auto;
   min-height: 0;
@@ -372,6 +335,42 @@ function bonusRows(arr) {
 }
 .section-title:first-child {
   margin-top: 0;
+}
+
+/* รูปใหญ่ (อุปกรณ์ฮีโร่) */
+.big-img {
+  width: 130px;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid;
+  background: #000;
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* รูปเซ็ตหลายมุม */
+.equip-img-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.equip-img-item {
+  text-align: center;
+}
+.equip-img-item img {
+  width: 110px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid;
+  background: #000;
+  display: block;
+}
+.equip-img-lbl {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 3px;
 }
 
 /* สเตตัสหลัก */
@@ -451,25 +450,24 @@ function bonusRows(arr) {
   }
 }
 
-/* การ์ดสกิล */
+/* การ์ดสกิล — ไอคอนใหญ่ ×2 */
 .skill-card {
   background: #161b22;
   border: 1px solid #262d38;
   border-left: 3px solid;
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 12px;
   margin-bottom: 10px;
 }
 .skill-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 12px;
 }
 .skill-ico {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
+  width: 88px;
+  height: 88px;
+  border-radius: 12px;
   object-fit: cover;
   background: #000;
   border: 2px solid;
@@ -479,18 +477,21 @@ function bonusRows(arr) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 2rem;
   border-color: #333 !important;
 }
+.skill-head-txt {
+  min-width: 0;
+}
 .skill-label {
+  display: block;
   font-weight: 700;
   color: #e2e8f0;
-  font-size: 1rem;
+  font-size: 1.05rem;
 }
 .skill-meta {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: #94a3b8;
-  margin-left: auto;
 }
 .skill-scaling {
   font-size: 0.85rem;
