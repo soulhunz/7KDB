@@ -21,9 +21,9 @@ export const NAV_GROUPS = [
       { path: '/hero-manager', name: 'hero-manager', icon: '🦸', label: 'ฮีโร่', ready: true },
       { path: '/pet-manager', name: 'pet-manager', icon: '🐾', label: 'สัตว์เลี้ยง', ready: true },
       { path: '/ring-manager', name: 'ring-manager', icon: '💍', label: 'แหวน', ready: true },
-      { path: '/equip-manager', name: 'equip-manager', icon: '🛡️', label: 'เซ็ตอุปกรณ์', ready: false },
+      { path: '/equip-manager', name: 'equip-manager', icon: '🛡️', label: 'เซ็ตอุปกรณ์', ready: true },
       { path: '/stat-glossary', name: 'stat-glossary', icon: '📖', label: 'อธิบายสเตตัส (AI)', ready: false },
-      { path: '/skill-lib', name: 'skill-lib', icon: '📚', label: 'คลังสกิล (AI)', ready: false },
+      { path: '/skill-lib', name: 'skill-lib', icon: '📚', label: 'คลังสกิล (AI)', ready: true },
     ],
   },
   {
@@ -31,7 +31,7 @@ export const NAV_GROUPS = [
     items: [
       { path: '/battle-war', name: 'battle-war', icon: '⚔️', label: 'สงคราม', ready: false },
       { path: '/battle-history', name: 'battle-history', icon: '📜', label: 'ประวัติการต่อสู้', ready: false },
-      { path: '/guild-manager', name: 'guild-manager', icon: '🏰', label: 'กิลด์ & พันธมิตร', ready: false },
+      { path: '/guild-manager', name: 'guild-manager', icon: '🏰', label: 'กิลด์ & พันธมิตร', ready: true },
       { path: '/survey-admin', name: 'survey-admin', icon: '📝', label: 'ฟอร์มรับสมัคร', ready: false },
     ],
   },
