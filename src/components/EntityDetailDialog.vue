@@ -107,28 +107,31 @@ function bonusRows(arr) {
       <div class="banner" :style="{ background: theme.grad }">
         <q-btn flat round dense icon="close" color="white" class="banner-close" v-close-popup />
 
-        <div class="banner-left">
-          <div class="banner-portrait" :style="{ borderColor: theme.color, boxShadow: `0 0 22px ${theme.color}66` }">
-            <img :src="mainImg || FALLBACK" @error="onErr" />
+        <div class="banner-media">
+          <div class="banner-left">
+            <div class="banner-portrait" :style="{ borderColor: theme.color, boxShadow: `0 0 22px ${theme.color}66` }">
+              <img :src="mainImg || FALLBACK" @error="onErr" />
+            </div>
+            <!-- ปุ่ม Awakening ปุ่มเดียว (กดเปิด/ปิด) ใต้รูป -->
+            <q-btn
+              v-if="hasAwaken"
+              :outline="!awaken"
+              :unelevated="awaken"
+              color="deep-purple-4"
+              no-caps
+              rounded
+              size="sm"
+              class="awaken-btn"
+              label="🌟 ตื่นรู้"
+              @click="awaken = !awaken"
+            />
           </div>
-          <!-- ปุ่มสลับ ปกติ / ตื่นรู้ ใต้รูป -->
-          <q-btn-toggle
-            v-if="hasAwaken"
-            v-model="awaken"
-            spread
-            no-caps
-            rounded
-            unelevated
-            size="sm"
-            class="awaken-toggle"
-            toggle-color="deep-purple-5"
-            color="dark"
-            text-color="grey-4"
-            :options="[
-              { label: '🧍 ปกติ', value: false },
-              { label: '🌟 ตื่นรู้', value: true },
-            ]"
-          />
+
+          <!-- รูปอุปกรณ์ (ข้างบน) -->
+          <div v-if="kind === 'hero' && item.accImg" class="acc-top">
+            <img :src="item.accImg" @error="onErr" :style="{ borderColor: theme.color + '77' }" />
+            <div class="acc-top-lbl">🗡️ อุปกรณ์</div>
+          </div>
         </div>
 
         <div class="banner-info">
@@ -166,12 +169,6 @@ function bonusRows(arr) {
               <span class="m-val">{{ st.value }}{{ st.pct ? '%' : '' }}</span>
             </div>
           </div>
-        </template>
-
-        <!-- รูปอุปกรณ์ของฮีโร่ (ใหญ่) -->
-        <template v-if="kind === 'hero' && item.accImg">
-          <div class="section-title">🗡️ อุปกรณ์</div>
-          <img class="big-img" :src="item.accImg" @error="onErr" :style="{ borderColor: theme.color + '55' }" />
         </template>
 
         <!-- สกิล (ฮีโร่) -->
@@ -262,12 +259,12 @@ function bonusRows(arr) {
   overflow: hidden;
 }
 
-/* ---- Banner ---- */
+/* ---- Banner (คอลัมน์: แถวรูปข้างบน แล้วชื่อด้านล่าง) ---- */
 .banner {
   position: relative;
   display: flex;
-  align-items: flex-start;
-  gap: 18px;
+  flex-direction: column;
+  gap: 14px;
   padding: 20px;
   flex-shrink: 0;
 }
@@ -275,6 +272,13 @@ function bonusRows(arr) {
   position: absolute;
   top: 6px;
   right: 6px;
+  z-index: 2;
+}
+.banner-media {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 .banner-left {
   flex-shrink: 0;
@@ -294,15 +298,30 @@ function bonusRows(arr) {
   object-fit: cover;
   display: block;
 }
-.awaken-toggle {
+.awaken-btn {
   margin-top: 10px;
   width: 140px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+/* รูปอุปกรณ์ข้างบน (เล็กลง 10px = 120px) */
+.acc-top {
+  text-align: center;
+}
+.acc-top img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 2px solid;
+  background: #000;
+  display: block;
+}
+.acc-top-lbl {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 4px;
 }
 .banner-info {
-  flex: 1;
   min-width: 0;
-  padding-top: 4px;
 }
 .banner-name {
   font-size: 1.5rem;
@@ -335,18 +354,6 @@ function bonusRows(arr) {
 }
 .section-title:first-child {
   margin-top: 0;
-}
-
-/* รูปใหญ่ (อุปกรณ์ฮีโร่) */
-.big-img {
-  width: 130px;
-  height: 130px;
-  object-fit: cover;
-  border-radius: 12px;
-  border: 1px solid;
-  background: #000;
-  display: block;
-  margin-bottom: 6px;
 }
 
 /* รูปเซ็ตหลายมุม */
