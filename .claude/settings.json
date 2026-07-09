@@ -35,7 +35,8 @@
       "Bash(ls -la apps-script/)",
       "Bash(wc -l apps-script/code.gs)",
       "Bash(node --check apps-script/code.gs)",
-      "Bash(echo \"EXIT: $?\")"
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(grep -oE \"googleusercontent\\\\\\\\\\\\\\\\.com|gamewith|CacheFirst|7kdb-images\" dist/sw.js)"
     ],
     "additionalDirectories": [
       "c:\\Users\\SoulH\\.claude\\projects\\c--Users-SoulH-Documents-Project-vue-7KDB\\memory"
