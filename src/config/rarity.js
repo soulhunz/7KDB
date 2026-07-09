@@ -29,16 +29,3 @@ export const rarityThemeOf = (r) => RARITY_THEME[r] || DEFAULT_THEME
 export function themeFromColor(color) {
   return { color, grad: `linear-gradient(135deg, ${color}dd, rgba(17,20,28,0.8))` }
 }
-
-// ชื่อสี Quasar (Material palette) ต่อความหายาก — ใช้กับ q-badge/q-chip/q-card
-export const RARITY_QCOLOR = {
-  โบราณ: 'red-6',
-  'ตำนาน SP': 'amber-8',
-  ตำนาน: 'deep-purple-5',
-  หายาก: 'blue-6',
-}
-export const rarityQColor = (r) => RARITY_QCOLOR[r] || 'blue-grey-6'
-
-// สี Quasar ตามเกรดแหวน 1-6
-export const gradeQColor = (g) =>
-  ({ 1: 'blue-grey-6', 2: 'green-6', 3: 'blue-6', 4: 'deep-purple-5', 5: 'orange-7', 6: 'amber-8' }[g] || 'blue-grey-6')

@@ -3,11 +3,14 @@ import { ref, computed } from 'vue'
 import { useDataStore } from '@/stores/dataStore'
 import EntityTile from '@/components/EntityTile.vue'
 import EntityDetailDialog from '@/components/EntityDetailDialog.vue'
-import { gradeQColor } from '@/config/rarity'
 
 const store = useDataStore()
 const search = ref('')
 const typeFilter = ref(null)
+
+// สีขอบตามเกรด 1-6 (เทา → ทอง)
+const gradeColor = { 1: '#6b7280', 2: '#22c55e', 3: '#3b82f6', 4: '#a855f7', 5: '#f97316', 6: '#eab308' }
+const colorOf = (g) => gradeColor[g] || '#6b7280'
 
 const showDetail = ref(false)
 const selected = ref(null)
@@ -42,27 +45,26 @@ const filtered = computed(() => {
       <q-select v-model="typeFilter" :options="typeOptions" dense outlined dark clearable placeholder="ประเภท" style="min-width: 150px" />
     </div>
 
-    <div v-if="store.loading" class="row q-col-gutter-sm">
-      <div v-for="n in 24" :key="n" class="col-4 col-sm-3 col-md-2">
-        <q-skeleton height="140px" />
-      </div>
+    <div v-if="store.loading" class="tile-grid">
+      <q-skeleton v-for="n in 24" :key="n" width="100px" height="124px" />
     </div>
 
-    <div v-else-if="!filtered.length" class="text-center text-grey-6 q-pa-xl">
-      <q-icon name="search_off" size="48px" class="q-mb-sm" />
-      <div>ไม่พบแหวน</div>
+    <div v-else-if="!filtered.length" class="text-center text-grey-5 q-pa-xl">
+      <div class="text-h2">💍</div>
+      ไม่พบแหวน
     </div>
 
-    <div v-else class="row q-col-gutter-sm">
-      <div v-for="ring in filtered" :key="ring.id" class="col-4 col-sm-3 col-md-2">
-        <EntityTile
-          :name="ring.name"
-          :img="ring.img"
-          :badge="ring.grade ? 'เกรด ' + ring.grade : ''"
-          :badge-color="gradeQColor(ring.grade)"
-          @click="open(ring)"
-        />
-      </div>
+    <div v-else class="tile-grid">
+      <EntityTile
+        v-for="ring in filtered"
+        :key="ring.id"
+        :name="ring.name"
+        :img="ring.img"
+        :border-color="colorOf(ring.grade)"
+        :badge="ring.grade ? String(ring.grade) : ''"
+        :badge-color="colorOf(ring.grade)"
+        @click="open(ring)"
+      />
     </div>
 
     <EntityDetailDialog v-model="showDetail" kind="ring" :item="selected" />

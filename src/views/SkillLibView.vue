@@ -78,28 +78,24 @@ function desc(s) {
       <div v-for="n in 9" :key="n" class="col-12 col-sm-6 col-md-4"><q-skeleton height="90px" /></div>
     </div>
 
-    <div v-else-if="!filtered.length" class="text-center text-grey-6 q-pa-xl">
-      <q-icon name="menu_book" size="48px" class="q-mb-sm" />
-      <div>ยังไม่มีสกิลในคลัง</div>
+    <div v-else-if="!filtered.length" class="text-center text-grey-5 q-pa-xl">
+      <div class="text-h2">📚</div>
+      ยังไม่มีสกิลในคลัง
     </div>
 
     <div v-else class="row q-col-gutter-sm">
       <div v-for="s in filtered" :key="s.id" class="col-12 col-sm-6 col-md-4">
-        <q-card class="full-height">
-          <q-card-section class="q-pb-xs">
-            <div class="row items-center no-wrap">
-              <q-avatar v-if="s.img" rounded size="32px" class="q-mr-sm">
-                <img :src="s.img" />
-              </q-avatar>
-              <div class="text-weight-medium ellipsis col">{{ s.name || '(ไม่มีชื่อ)' }}</div>
-            </div>
-          </q-card-section>
-          <q-card-section class="q-pt-none">
-            <q-badge :color="skillCatColor(catOf(s))" :label="skillCatLabel(catOf(s))" class="q-mb-sm" />
-            <div class="text-caption text-grey-5">
-              {{ desc(s) || '— ยังไม่มีคำอธิบาย —' }}
-            </div>
-          </q-card-section>
+        <q-card class="entity-card bg-dark full-height q-pa-sm" bordered>
+          <div class="row items-center no-wrap q-mb-xs">
+            <q-avatar v-if="s.img" rounded size="28px" class="q-mr-sm">
+              <img :src="s.img" />
+            </q-avatar>
+            <span class="text-weight-bold ellipsis">{{ s.name || '(ไม่มีชื่อ)' }}</span>
+          </div>
+          <q-badge :color="skillCatColor(catOf(s))" :label="skillCatLabel(catOf(s))" class="q-mb-xs" />
+          <div class="text-caption text-grey-4 leading-snug">
+            {{ desc(s) || '— ยังไม่มีคำอธิบาย —' }}
+          </div>
         </q-card>
       </div>
     </div>
