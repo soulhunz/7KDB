@@ -16,7 +16,8 @@
       "Bash(taskkill //F //IM node.exe)",
       "Bash(pkill -f vite)",
       "Read(//c/Users/SoulH/.claude/projects/c--Users-SoulH-Documents-Project-vue-7KDB/memory/**)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -q -m ' *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\SoulH\\.claude\\projects\\c--Users-SoulH-Documents-Project-vue-7KDB\\memory"

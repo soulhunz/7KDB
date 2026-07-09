@@ -75,10 +75,50 @@ export const useDataStore = defineStore('data', {
         this.teams = t || {}
       }
       if (data.teams_3v3?.length) this.teams3v3 = data.teams_3v3
-      if (data.guilds) this.guilds = data.guilds
+      this.applyGuilds(data)
       if (data.applications) this.applications = data.applications
       if (data.surveyConfig) this.surveyConfig = data.surveyConfig
       if (data.battleHistory) this.battleHistory = data.battleHistory
     },
+
+    // จัดกลุ่มกิลด์จาก server — รองรับทั้ง data.guilds และ fallback data.guildMembers
+    // (อิงตาม applyGuildsFromServer ของเวอร์ชัน HTML)
+    applyGuilds(data) {
+      if (data.guilds?.length) {
+        this.guilds = data.guilds.map((g) => ({
+          id: g.id,
+          name: g.name,
+          type: g.type || 'sub',
+          members: (g.members || []).map(normalizeMember),
+        }))
+      } else if (data.guildMembers?.length) {
+        const byGuild = {}
+        data.guildMembers.forEach((m) => {
+          const gid = String(m.guild_id || 'G_MAIN')
+          ;(byGuild[gid] ||= []).push(normalizeMember(m))
+        })
+        this.guilds = Object.keys(byGuild).map((gid) => ({
+          id: gid,
+          name: gid === 'G_MAIN' ? 'Main Guild (กิลด์หลัก)' : gid,
+          type: gid === 'G_MAIN' ? 'main' : 'sub',
+          members: byGuild[gid],
+        }))
+      }
+    },
   },
 })
+
+// map ข้อมูลสมาชิกให้ครบ field (อิงตาม normalizeMemberRecord เดิม)
+function normalizeMember(m) {
+  if (!m) return { id: '', name: '', hero_list: [], pet_list: [], ring_list: [], teams: [], inventoryUpdatedAt: 0 }
+  return {
+    id: String(m.id ?? ''),
+    name: m.name || '',
+    accessCode: m.accessCode || '',
+    hero_list: m.hero_list || m.ownedHeroes || [],
+    pet_list: m.pet_list || [],
+    ring_list: m.ring_list || [],
+    teams: Array.isArray(m.teams) ? m.teams : [],
+    inventoryUpdatedAt: parseInt(m.inventoryUpdatedAt, 10) || 0,
+  }
+}

@@ -6,6 +6,8 @@ const readyViews = {
   dashboard: () => import('@/views/DashboardView.vue'),
   'hero-manager': () => import('@/views/HeroManagerView.vue'),
   'pet-manager': () => import('@/views/PetManagerView.vue'),
+  'ring-manager': () => import('@/views/RingManagerView.vue'),
+  'member-roster': () => import('@/views/MemberRosterView.vue'),
 }
 
 // สร้าง routes จาก nav config ทีเดียว — view ที่ยังไม่ทำใช้ PlaceholderView
