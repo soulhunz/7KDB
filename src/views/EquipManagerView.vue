@@ -35,25 +35,27 @@ const filtered = computed(() => {
       </q-input>
     </div>
 
-    <div v-if="store.loading" class="tile-grid">
-      <q-skeleton v-for="n in 16" :key="n" width="100px" height="124px" />
+    <div v-if="store.loading" class="row q-col-gutter-sm">
+      <div v-for="n in 16" :key="n" class="col-4 col-sm-3 col-md-2">
+        <q-skeleton height="140px" />
+      </div>
     </div>
 
-    <div v-else-if="!filtered.length" class="text-center text-grey-5 q-pa-xl">
-      <div class="text-h2">🛡️</div>
-      ไม่พบเซ็ตอุปกรณ์
+    <div v-else-if="!filtered.length" class="text-center text-grey-6 q-pa-xl">
+      <q-icon name="search_off" size="48px" class="q-mb-sm" />
+      <div>ไม่พบเซ็ตอุปกรณ์</div>
     </div>
 
-    <div v-else class="tile-grid">
-      <EntityTile
-        v-for="set in filtered"
-        :key="set.id"
-        :name="set.name"
-        :img="set.img"
-        :badge="set.setType"
-        badge-color="#c2410c"
-        @click="open(set)"
-      />
+    <div v-else class="row q-col-gutter-sm">
+      <div v-for="set in filtered" :key="set.id" class="col-4 col-sm-3 col-md-2">
+        <EntityTile
+          :name="set.name"
+          :img="set.img"
+          :badge="set.setType"
+          badge-color="orange-8"
+          @click="open(set)"
+        />
+      </div>
     </div>
 
     <EntityDetailDialog v-model="showDetail" kind="equip" :item="selected" />

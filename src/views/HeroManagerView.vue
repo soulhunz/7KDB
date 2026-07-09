@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useDataStore } from '@/stores/dataStore'
 import EntityTile from '@/components/EntityTile.vue'
 import EntityDetailDialog from '@/components/EntityDetailDialog.vue'
-import { sortByRarityThenName } from '@/config/rarity'
+import { sortByRarityThenName, rarityQColor } from '@/config/rarity'
 
 const store = useDataStore()
 const search = ref('')
@@ -44,24 +44,27 @@ const filtered = computed(() => {
       <q-select v-model="rarityFilter" :options="rarityOptions" dense outlined dark clearable placeholder="เรตติ้ง" style="min-width: 140px" />
     </div>
 
-    <div v-if="store.loading" class="tile-grid">
-      <q-skeleton v-for="n in 24" :key="n" width="100px" height="124px" />
+    <div v-if="store.loading" class="row q-col-gutter-sm">
+      <div v-for="n in 24" :key="n" class="col-4 col-sm-3 col-md-2">
+        <q-skeleton height="140px" />
+      </div>
     </div>
 
-    <div v-else-if="!filtered.length" class="text-center text-grey-5 q-pa-xl">
-      <div class="text-h2">🔍</div>
-      ไม่พบฮีโร่ที่ตรงกับเงื่อนไข
+    <div v-else-if="!filtered.length" class="text-center text-grey-6 q-pa-xl">
+      <q-icon name="search_off" size="48px" class="q-mb-sm" />
+      <div>ไม่พบฮีโร่ที่ตรงกับเงื่อนไข</div>
     </div>
 
-    <div v-else class="tile-grid">
-      <EntityTile
-        v-for="hero in filtered"
-        :key="hero.id"
-        :name="hero.name"
-        :img="hero.img"
-        :badge="hero.rarity"
-        @click="open(hero)"
-      />
+    <div v-else class="row q-col-gutter-sm">
+      <div v-for="hero in filtered" :key="hero.id" class="col-4 col-sm-3 col-md-2">
+        <EntityTile
+          :name="hero.name"
+          :img="hero.img"
+          :badge="hero.rarity"
+          :badge-color="rarityQColor(hero.rarity)"
+          @click="open(hero)"
+        />
+      </div>
     </div>
 
     <EntityDetailDialog v-model="showDetail" kind="hero" :item="selected" />
