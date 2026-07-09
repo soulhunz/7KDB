@@ -42,7 +42,8 @@
       "Bash(node -e \"const d=require\\('c:/Users/SoulH/Documents/Project_vue/7KDB/public/data.json'\\); console.log\\('has versions:', !!d.versions, '| keys:', d.versions?Object.keys\\(d.versions\\).length:0\\); console.log\\('accessCode leak:', JSON.stringify\\(d\\).toLowerCase\\(\\).includes\\('accesscode'\\)\\)\")",
       "Bash(git revert *)",
       "Bash(grep -nA3 \"function getRarityBadgeHTML\" index.html)",
-      "Bash(rm -f src/views/HeroManagerView.vue src/views/PetManagerView.vue src/views/RingManagerView.vue)"
+      "Bash(rm -f src/views/HeroManagerView.vue src/views/PetManagerView.vue src/views/RingManagerView.vue)",
+      "Bash(cd \"c:/Users/SoulH/Documents/Project_html/7k-commander\" && grep -nE \"uploadHeroImage|uploadEquipImage|readAsDataURL|accImg|es-img-acc|data:image\" index.html | head -40)"
     ],
     "additionalDirectories": [
       "c:\\Users\\SoulH\\.claude\\projects\\c--Users-SoulH-Documents-Project-vue-7KDB\\memory"
