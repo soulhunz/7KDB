@@ -44,7 +44,7 @@ onMounted(() => {
 <template>
   <q-layout view="hHh Lpr lFf">
     <q-header elevated class="bg-dark">
-      <q-toolbar>
+      <q-toolbar style="height: 50px; min-height: 50px">
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleDrawer" />
         <q-toolbar-title class="text-weight-bold">
           <span class="text-primary">7K</span>DB
