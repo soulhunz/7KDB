@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useDataStore } from '@/stores/dataStore'
 import EntityTile from '@/components/EntityTile.vue'
 import EntityDetailDialog from '@/components/EntityDetailDialog.vue'
+import { sortByRarityThenName } from '@/config/rarity'
 
 const store = useDataStore()
 const search = ref('')
@@ -19,11 +20,13 @@ const rarityOptions = computed(() => [...new Set(store.heroes.map((h) => h.rarit
 
 const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
-  return store.heroes.filter((h) => {
+  const list = store.heroes.filter((h) => {
     const matchQ = !q || (h.name || '').toLowerCase().includes(q)
     const matchR = !rarityFilter.value || h.rarity === rarityFilter.value
     return matchQ && matchR
   })
+  // เรียง โบราณ → ตำนาน SP → ตำนาน → หายาก แล้วตามชื่อ
+  return sortByRarityThenName(list)
 })
 </script>
 

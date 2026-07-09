@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useDataStore } from '@/stores/dataStore'
 import EntityTile from '@/components/EntityTile.vue'
 import EntityDetailDialog from '@/components/EntityDetailDialog.vue'
+import { sortByRarityThenName } from '@/config/rarity'
 
 const store = useDataStore()
 const search = ref('')
@@ -16,7 +17,9 @@ function open(pet) {
 
 const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
-  return store.pets.filter((p) => !q || (p.name || '').toLowerCase().includes(q))
+  const list = store.pets.filter((p) => !q || (p.name || '').toLowerCase().includes(q))
+  // เรียง ตำนาน → หายาก แล้วตามชื่อ (ตามลำดับความหายากเดียวกับฮีโร่)
+  return sortByRarityThenName(list)
 })
 </script>
 
