@@ -60,7 +60,8 @@ const primaryStats = computed(() =>
   }))
 )
 const secondaryStats = computed(() =>
-  SECONDARY_STATS.filter((k) => (statsSource.value[k] || 0) > 0).map((k) => ({
+  // แสดงค่ารองทุกตัว (แม้เป็น 0) เพื่อให้ข้อมูลครบ
+  SECONDARY_STATS.filter((k) => statsSource.value[k] != null).map((k) => ({
     key: k, ...STAT_META[k], value: statsSource.value[k],
   }))
 )
@@ -91,7 +92,11 @@ const petTypes = computed(() => {
   return (Array.isArray(t) ? t : [t]).filter(Boolean)
 })
 const equipMain = computed(() =>
-  Object.keys(props.item?.mainStats || {}).map((k) => ({ label: STAT_META[k]?.label || k, value: props.item.mainStats[k] }))
+  Object.keys(props.item?.mainStats || {}).map((k) => ({
+    label: STAT_META[k]?.label || k,
+    icon: STAT_META[k]?.icon || '📊',
+    value: props.item.mainStats[k],
+  }))
 )
 function bonusRows(arr) {
   return (arr || []).map((b) => `${b.stat} +${b.value}${b.valueType === 'percent' ? '%' : ''}`)
@@ -146,18 +151,19 @@ function bonusRows(arr) {
           <div class="section-title">📊 {{ isAwaken ? 'สเตตัสตื่นรู้' : 'สเตตัสพื้นฐาน' }}</div>
           <div class="stat-primary-grid q-mb-sm">
             <div v-for="st in primaryStats" :key="st.key" class="stat-primary" :style="{ borderColor: theme.color + '55' }">
-              <div class="stat-ico">{{ st.icon }}</div>
-              <div>
+              <div class="stat-ico" :style="{ background: theme.color + '22' }">{{ st.icon }}</div>
+              <div class="stat-primary-txt">
                 <div class="stat-lbl">{{ st.label }}</div>
                 <div class="stat-val">{{ st.value }}{{ st.pct ? '%' : '' }}</div>
               </div>
             </div>
           </div>
-          <div v-if="secondaryStats.length" class="row q-gutter-xs q-mb-md">
-            <q-chip v-for="st in secondaryStats" :key="st.key" dense square color="grey-9" text-color="grey-3" class="stat-chip">
-              <span class="q-mr-xs">{{ st.icon }}</span>{{ st.label }}
-              <span class="text-weight-bold q-ml-xs">{{ st.value }}{{ st.pct ? '%' : '' }}</span>
-            </q-chip>
+          <div v-if="secondaryStats.length" class="stat-mini-grid q-mb-md">
+            <div v-for="st in secondaryStats" :key="st.key" class="stat-mini">
+              <span class="m-ico">{{ st.icon }}</span>
+              <span class="m-lbl">{{ st.label }}</span>
+              <span class="m-val">{{ st.value }}{{ st.pct ? '%' : '' }}</span>
+            </div>
           </div>
         </template>
 
@@ -205,7 +211,8 @@ function bonusRows(arr) {
             <div class="section-title">📊 ค่าหลัก</div>
             <div class="stat-primary-grid q-mb-md">
               <div v-for="st in equipMain" :key="st.label" class="stat-primary" :style="{ borderColor: theme.color + '55' }">
-                <div>
+                <div class="stat-ico" :style="{ background: theme.color + '22' }">{{ st.icon }}</div>
+                <div class="stat-primary-txt">
                   <div class="stat-lbl">{{ st.label }}</div>
                   <div class="stat-val">{{ st.value }}</div>
                 </div>
@@ -228,19 +235,25 @@ function bonusRows(arr) {
 <style scoped>
 .detail-card {
   width: 92vw;
-  max-width: 560px;
+  max-width: 600px;
+  /* ความสูงคงที่ — ทุก dialog ขนาดเท่ากัน, ข้างในสกรอล */
+  height: 82vh;
+  max-height: 760px;
+  display: flex;
+  flex-direction: column;
   background: #0f1420;
   border-radius: 16px;
   overflow: hidden;
 }
 
-/* ---- Banner ---- */
+/* ---- Banner (ส่วนหัวคงที่ ไม่สกรอล) ---- */
 .banner {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 18px 18px 20px;
+  gap: 18px;
+  padding: 20px 20px 22px;
+  flex-shrink: 0;
 }
 .banner-close {
   position: absolute;
@@ -248,9 +261,9 @@ function bonusRows(arr) {
   right: 6px;
 }
 .banner-portrait {
-  width: 96px;
-  height: 96px;
-  border-radius: 14px;
+  width: 140px;
+  height: 140px;
+  border-radius: 16px;
   border: 3px solid;
   overflow: hidden;
   flex-shrink: 0;
@@ -292,9 +305,11 @@ function bonusRows(arr) {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* ---- Body ---- */
+/* ---- Body (สกรอลได้ เต็มพื้นที่ที่เหลือ) ---- */
 .detail-body {
-  max-height: 68vh;
+  flex: 1 1 auto;
+  min-height: 0; /* สำคัญ: ให้ overflow ทำงานใน flex column */
+  overflow-y: auto;
   padding: 16px 18px 20px;
 }
 .section-title {
@@ -309,35 +324,82 @@ function bonusRows(arr) {
   margin-top: 0;
 }
 
-/* สเตตัสหลัก */
+/* สเตตัสหลัก (การ์ดใหญ่) */
 .stat-primary-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  gap: 10px;
 }
 .stat-primary {
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: #161b22;
+  gap: 12px;
+  background: linear-gradient(135deg, #1a2130 0%, #12161f 100%);
   border: 1px solid;
-  border-radius: 10px;
-  padding: 8px 12px;
+  border-radius: 12px;
+  padding: 10px 14px;
 }
 .stat-ico {
-  font-size: 1.3rem;
+  font-size: 1.35rem;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  flex-shrink: 0;
+}
+.stat-primary-txt {
+  min-width: 0;
 }
 .stat-lbl {
   font-size: 0.72rem;
   color: #94a3b8;
+  white-space: nowrap;
 }
 .stat-val {
-  font-size: 1.05rem;
+  font-size: 1.2rem;
   font-weight: 800;
   color: #f1f5f9;
+  line-height: 1.15;
 }
-.stat-chip {
-  font-size: 0.72rem;
+
+/* สเตตัสรอง (การ์ดเล็กเข้าชุดกัน) */
+.stat-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.stat-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #161b22;
+  border: 1px solid #262d38;
+  border-radius: 9px;
+  padding: 7px 11px;
+}
+.stat-mini .m-ico {
+  font-size: 0.95rem;
+}
+.stat-mini .m-lbl {
+  flex: 1;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stat-mini .m-val {
+  font-weight: 800;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+}
+
+@media (min-width: 480px) {
+  .stat-mini-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 /* การ์ดสกิล */
