@@ -30,7 +30,12 @@
       "Bash(cd \"c:/Users/SoulH/Documents/Project_html/7k-commander\" && grep -oE \"\\\\.\\(text-orange|text-blue|text-green|text-red|text-purple|sb-green|sb-purple|sb-blue|sb-red|sb-head|sb-content\\)\\\\s*\\\\{[^}]*\\\\}\" index.html | head -40)",
       "Bash(rm -f src/components/EntityCard.vue)",
       "Bash(sed -n '/async loadAll/,/^    },/p' src/stores/dataStore.js)",
-      "Bash(sed -n '/async getAllData/,/},/p' src/api/index.js)"
+      "Bash(sed -n '/async getAllData/,/},/p' src/api/index.js)",
+      "Bash(find . -iname \"code.gs\" -not -path \"./node_modules/*\")",
+      "Bash(ls -la apps-script/)",
+      "Bash(wc -l apps-script/code.gs)",
+      "Bash(node --check apps-script/code.gs)",
+      "Bash(echo \"EXIT: $?\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\SoulH\\.claude\\projects\\c--Users-SoulH-Documents-Project-vue-7KDB\\memory"

@@ -27,4 +27,8 @@ export const api = {
 
   // บังคับดึงสดจาก backend (ข้าม snapshot) — ใช้ตอน admin จะ export snapshot ให้ได้ข้อมูลล่าสุด
   getAllDataLive: () => backend.getAllData(),
+
+  // ⚡ incremental — ไม่ผ่าน snapshot (เป็น delta อยู่แล้ว)
+  getUpdates: (versions) => backend.getUpdates(versions),
+  getVersions: () => backend.getVersions(),
 }

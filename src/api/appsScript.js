@@ -34,6 +34,11 @@ export const appsScriptApi = {
   // โหลดข้อมูลทั้งหมดในคราวเดียว (heroes, pets, rings, teams, guilds, ...)
   getAllData: () => post({ action: 'getAllData' }),
 
+  // ⚡ incremental: ส่งเวอร์ชันที่ client มี → ได้เฉพาะ category ที่เปลี่ยน { versions, changed }
+  getUpdates: (versions) => post({ action: 'getUpdates', versions: versions || {} }),
+  // เวอร์ชันปัจจุบันของทุก category (เล็กมาก) — ไว้ seed baseline
+  getVersions: () => post({ action: 'getVersions' }).then((r) => r.versions || {}),
+
   // บันทึก/ลบ รายการเดียว (category = 'heroes' | 'pets' | 'rings' | ...)
   saveOneItem: (category, item) => post({ action: 'saveOneItem', category, item }),
   deleteOneItem: (category, id) => post({ action: 'deleteOneItem', category, id }),

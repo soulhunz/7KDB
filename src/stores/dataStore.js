@@ -1,8 +1,26 @@
-// Store กลางเก็บข้อมูลทั้งหมดที่โหลดจาก backend (getAllData)
-// โครงสร้างข้อมูลอิงตามเวอร์ชัน HTML เดิม (processLoadedData)
+// Store กลางเก็บข้อมูลทั้งหมด + ระบบ incremental loading
+// - โหลดครั้งแรก: snapshot/getAllData (ได้ข้อมูล + versions)
+// - ครั้งต่อไป: getUpdates(versions) → โหลดเฉพาะ category ที่เปลี่ยน
+// - cache ลง localStorage เพื่อให้เปิดครั้งหน้าเริ่มจากของเดิมทันที
 import { defineStore } from 'pinia'
 import { api } from '@/api'
 import { downloadSnapshot } from '@/api/snapshot'
+
+const CACHE_KEY = '7kdb_cache_v1'
+// state ที่ persist ลง localStorage (ชื่อ state ในสโตร์)
+const PERSIST_KEYS = [
+  'heroes', 'pets', 'rings', 'items', 'equipSets', 'heroBuilds', 'accessories',
+  'skillLib', 'enemyPatterns', 'affiliations', 'teams', 'teams3v3', 'guilds',
+  'applications', 'surveyConfig', 'battleHistory',
+]
+// map: category จาก server → ชื่อ state ในสโตร์ (สำหรับ merge delta ของ getUpdates)
+const CAT_TO_STATE = {
+  heroes: 'heroes', pets: 'pets', rings: 'rings', items: 'items',
+  equip_sets: 'equipSets', hero_builds: 'heroBuilds', accessories: 'accessories',
+  skillLib: 'skillLib', enemyPatterns: 'enemyPatterns', affiliations: 'affiliations',
+  teams_3v3: 'teams3v3', applications: 'applications', battleHistory: 'battleHistory',
+  surveyConfig: 'surveyConfig',
+}
 
 export const useDataStore = defineStore('data', {
   state: () => ({
@@ -11,7 +29,10 @@ export const useDataStore = defineStore('data', {
     exporting: false,
     error: null,
     timestamp: 0,
-    source: null, // 'snapshot' | 'live' — ข้อมูลชุดนี้มาจากไหน
+    source: null, // 'snapshot' | 'สด' | 'อัปเดต N หมวด' | 'ล่าสุดแล้ว'
+    versions: {}, // เวอร์ชันต่อ category ที่ client มีอยู่
+    hydrated: false, // อ่าน cache จาก localStorage แล้วหรือยัง
+    initDone: false, // โหลดรอบแรกของ session เสร็จหรือยัง
 
     // ก้อนข้อมูลหลัก
     heroes: [],
@@ -37,22 +58,46 @@ export const useDataStore = defineStore('data', {
     petCount: (s) => s.pets.length,
     ringCount: (s) => s.rings.length,
     guildCount: (s) => s.guilds.length,
-    // รวมจำนวนสมาชิกจากทุกกิลด์
     memberCount: (s) =>
       s.guilds.reduce((sum, g) => sum + ((g.members && g.members.length) || 0), 0),
   },
 
   actions: {
-    // โหลดข้อมูลทั้งหมด (เรียกครั้งเดียวตอนเปิดแอป) — ไม่มี login แล้ว
+    // โหลดข้อมูล — full ครั้งแรก แล้ว incremental ครั้งต่อไป
     async loadAll(force = false) {
-      if (this.loaded && !force) return
+      if (this.initDone && !force) return
       this.loading = true
       this.error = null
       try {
-        const data = await api.getAllData()
-        this.source = data?.__fromSnapshot ? 'snapshot' : 'live'
-        this.applyData(data || {})
-        this.loaded = true
+        if (!this.hydrated) {
+          this.hydrateFromCache()
+          this.hydrated = true
+        }
+
+        if (this.loaded && this.versions && Object.keys(this.versions).length) {
+          // ---- incremental: โหลดเฉพาะที่เปลี่ยน ----
+          const res = await api.getUpdates(this.versions)
+          const changed = res?.changed || {}
+          this.applyDelta(changed)
+          if (res?.versions) this.versions = res.versions
+          if (res?.timestamp) this.timestamp = res.timestamp
+          const n = Object.keys(changed).length
+          this.source = n ? `อัปเดต ${n} หมวด` : 'ล่าสุดแล้ว'
+        } else {
+          // ---- full: โหลดทั้งก้อน (snapshot ก่อน แล้ว fallback Apps Script) ----
+          const data = await api.getAllData()
+          this.source = data?.__fromSnapshot ? 'snapshot' : 'สด'
+          this.applyData(data || {})
+          this.loaded = true
+          if (data?.versions && Object.keys(data.versions).length) {
+            this.versions = data.versions
+          } else {
+            // snapshot เก่าไม่มี versions → ขอ baseline (เล็กมาก) เพื่อให้ครั้งหน้าเป็น incremental
+            try { this.versions = await api.getVersions() } catch (e) { this.versions = {} }
+          }
+        }
+        this.initDone = true
+        this.persistCache()
       } catch (e) {
         this.error = e?.message || String(e)
         console.error('loadAll failed:', e)
@@ -61,8 +106,7 @@ export const useDataStore = defineStore('data', {
       }
     },
 
-    // [Admin] ดึงข้อมูลสดล่าสุดจาก backend แล้วดาวน์โหลดเป็นไฟล์ data.json
-    // (เอาไปวางใน public/ แล้ว deploy — user จะได้อ่านจาก snapshot แทนการยิง Apps Script)
+    // [Admin] ดึงข้อมูลสดล่าสุด แล้วดาวน์โหลดเป็น data.json (สำหรับ publish snapshot)
     async exportSnapshot() {
       this.exporting = true
       try {
@@ -74,7 +118,58 @@ export const useDataStore = defineStore('data', {
       }
     },
 
-    // แมปข้อมูลดิบจาก server เข้า state (กัน array ว่างมาทับข้อมูลเดิม)
+    // merge เฉพาะ category ที่เปลี่ยน (overwrite ตรง ๆ — รองรับ เพิ่ม/แก้/ลบ)
+    applyDelta(changed) {
+      if (!changed) return
+      Object.keys(changed).forEach((cat) => {
+        if (cat === 'guilds') {
+          this.applyGuilds({ guilds: changed.guilds || [] })
+          return
+        }
+        if (cat === 'teams') {
+          const t = changed.teams?.teams ? changed.teams.teams : changed.teams
+          this.teams = t || {}
+          return
+        }
+        const key = CAT_TO_STATE[cat]
+        if (key) this[key] = changed[cat]
+      })
+    },
+
+    // เขียน cache ลง localStorage
+    persistCache() {
+      try {
+        const data = {}
+        PERSIST_KEYS.forEach((k) => (data[k] = this[k]))
+        localStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({ versions: this.versions, timestamp: this.timestamp, data })
+        )
+      } catch (e) {
+        console.warn('cache save failed:', e)
+      }
+    },
+
+    // อ่าน cache จาก localStorage (เริ่มแอปเห็นข้อมูลทันทีก่อนยิง network)
+    hydrateFromCache() {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY)
+        if (!raw) return false
+        const p = JSON.parse(raw)
+        if (!p || !p.data) return false
+        PERSIST_KEYS.forEach((k) => {
+          if (p.data[k] !== undefined) this[k] = p.data[k]
+        })
+        this.versions = p.versions || {}
+        this.timestamp = p.timestamp || 0
+        this.loaded = true
+        return true
+      } catch (e) {
+        return false
+      }
+    },
+
+    // แมปข้อมูลดิบจาก server เข้า state (full load — กัน array ว่างมาทับข้อมูลเดิม)
     applyData(data) {
       this.timestamp = data.timestamp || Date.now()
       if (data.heroes?.length) this.heroes = data.heroes
@@ -99,7 +194,6 @@ export const useDataStore = defineStore('data', {
     },
 
     // จัดกลุ่มกิลด์จาก server — รองรับทั้ง data.guilds และ fallback data.guildMembers
-    // (อิงตาม applyGuildsFromServer ของเวอร์ชัน HTML)
     applyGuilds(data) {
       if (data.guilds?.length) {
         this.guilds = data.guilds.map((g) => ({
@@ -120,6 +214,9 @@ export const useDataStore = defineStore('data', {
           type: gid === 'G_MAIN' ? 'main' : 'sub',
           members: byGuild[gid],
         }))
+      } else if (data.guilds) {
+        // delta ที่กิลด์ถูกล้างหมด
+        this.guilds = []
       }
     },
   },

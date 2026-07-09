@@ -55,16 +55,12 @@ onMounted(() => {
 
         <q-badge
           v-if="store.loaded"
-          :color="store.source === 'snapshot' ? 'info' : 'positive'"
+          :color="store.source === 'ล่าสุดแล้ว' ? 'positive' : 'info'"
           class="q-mr-sm"
           text-color="white"
         >
-          <q-icon
-            :name="store.source === 'snapshot' ? 'bolt' : 'cloud_done'"
-            size="14px"
-            class="q-mr-xs"
-          />
-          {{ store.source === 'snapshot' ? 'snapshot' : 'สด' }}
+          <q-icon name="bolt" size="14px" class="q-mr-xs" />
+          {{ store.source || 'พร้อม' }}
         </q-badge>
 
         <q-btn
