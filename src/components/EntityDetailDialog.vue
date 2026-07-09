@@ -1,5 +1,9 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { rarityThemeOf, themeFromColor } from '@/config/rarity'
+import {
+  STAT_META, PRIMARY_STATS, SECONDARY_STATS, SKILL_LABELS, summarizeSkill,
+} from '@/config/stats'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -12,164 +16,207 @@ const show = computed({
   set: (v) => emit('update:modelValue', v),
 })
 
-const FALLBACK = 'https://placehold.co/120x120/0d1117/475569?text=%3F'
+const FALLBACK = 'https://placehold.co/140x140/0d1117/475569?text=%3F'
+const onErr = (e) => (e.target.src = FALLBACK)
 
-// ป้ายชื่อสเตตัส (ไทย)
-const STAT_LABELS = {
-  hp: 'พลังชีวิต', atk: 'พลังโจมตี', def: 'พลังป้องกัน', spd: 'ความเร็ว',
-  critRate: 'อัตราคริ', critDmg: 'ดาเมจคริ', block: 'บล็อค', dmgRed: 'ลดดาเมจ',
-  acc: 'เข้าเป้า', resist: 'ต้านทาน', weakness: 'จุดอ่อน',
-}
-const PCT_STATS = new Set(['critRate', 'critDmg', 'block', 'dmgRed', 'acc', 'resist', 'weakness'])
+// โหมด ปกติ / ตื่นรู้ (ฮีโร่) — รีเซ็ตทุกครั้งที่เปลี่ยนตัว
+const mode = ref('normal')
+watch(() => props.item, () => (mode.value = 'normal'))
 
-const SKILL_LABELS = { n: '⚔️ โจมตีปกติ', p: '🌀 แพสซีฟ', s1: '💥 สกิล 1', s2: '✨ สกิล 2', aw: '🌟 ตื่นรู้' }
-
-// สเตตัสที่มีค่า > 0 เท่านั้น
-const baseStats = computed(() => {
-  const s = props.item?.baseStats || {}
-  return Object.keys(STAT_LABELS)
-    .filter((k) => s[k] != null)
-    .map((k) => ({ key: k, label: STAT_LABELS[k], value: s[k], pct: PCT_STATS.has(k) }))
-})
-
-// สกิลที่มีเนื้อหา
-const skills = computed(() => {
-  const sk = props.item?.skills || {}
-  return Object.keys(SKILL_LABELS)
-    .filter((k) => sk[k] && String(sk[k]).trim())
-    .map((k) => ({ key: k, label: SKILL_LABELS[k], html: sk[k] }))
-})
-
-// รูปฮีโร่ (ฐาน / ตื่นรู้ / อุปกรณ์)
-const heroImgs = computed(() => {
+// ธีมสี (ฮีโร่/สัตว์ = ตามความหายาก, แหวน = ตามเกรด, เซ็ต = ส้ม)
+const GRADE_COLOR = { 1: '#6b7280', 2: '#22c55e', 3: '#3b82f6', 4: '#a855f7', 5: '#f97316', 6: '#eab308' }
+const theme = computed(() => {
   const it = props.item || {}
-  return [
-    { label: 'ปกติ', src: it.img },
-    { label: 'ตื่นรู้', src: it.img2 },
-    { label: 'อุปกรณ์', src: it.accImg },
-  ].filter((x) => x.src)
+  if (props.kind === 'ring') return themeFromColor(GRADE_COLOR[it.grade] || '#6b7280')
+  if (props.kind === 'equip') return themeFromColor('#f97316')
+  return rarityThemeOf(it.rarity)
 })
 
-// equip set bonus → แถว
-function bonusRows(arr) {
-  return (arr || []).map((b) => {
-    const suffix = b.valueType === 'percent' ? '%' : ''
-    return `${b.stat} +${b.value}${suffix}`
-  })
-}
-const equipMain = computed(() => {
-  const m = props.item?.mainStats || {}
-  return Object.keys(m).map((k) => ({ label: STAT_LABELS[k] || k, value: m[k] }))
+// ---- ฮีโร่: awakening ----
+const hasAwaken = computed(() => {
+  const it = props.item || {}
+  if (props.kind !== 'hero') return false
+  const b = it.baseStats || {}, a = it.awakenStats || {}
+  const statsDiffer = Object.keys(b).some((k) => a[k] !== undefined && a[k] !== b[k])
+  return !!(it.img2 && it.img2.trim()) || statsDiffer || !!(it.skillData?.aw?.img)
 })
+const isAwaken = computed(() => hasAwaken.value && mode.value === 'awaken')
+
+const mainImg = computed(() => {
+  const it = props.item || {}
+  if (props.kind !== 'hero') return it.img
+  return isAwaken.value ? it.img2 || it.img : it.img
+})
+
+// สเตตัสที่แสดง (สลับตามโหมด)
+const statsSource = computed(() => {
+  const it = props.item || {}
+  if (props.kind === 'equip') return it.mainStats || {}
+  return isAwaken.value ? it.awakenStats || it.baseStats || {} : it.baseStats || {}
+})
+const primaryStats = computed(() =>
+  PRIMARY_STATS.filter((k) => statsSource.value[k] != null).map((k) => ({
+    key: k, ...STAT_META[k], value: statsSource.value[k],
+  }))
+)
+const secondaryStats = computed(() =>
+  SECONDARY_STATS.filter((k) => (statsSource.value[k] || 0) > 0).map((k) => ({
+    key: k, ...STAT_META[k], value: statsSource.value[k],
+  }))
+)
+
+// รูปประกอบฮีโร่ (อุปกรณ์)
+const accImg = computed(() => (props.kind === 'hero' ? props.item?.accImg : ''))
+
+// ---- สกิลฮีโร่ (จาก skillData + HTML text) ----
+const skills = computed(() => {
+  if (props.kind !== 'hero') return []
+  const it = props.item || {}
+  const keys = ['n', 'p', 's1', 's2']
+  if (isAwaken.value && it.skillData?.aw?.img) keys.push('aw')
+  return keys
+    .map((k) => {
+      const sd = it.skillData?.[k]
+      const html = it.skills?.[k]
+      const summary = summarizeSkill(sd)
+      const hasAny = (html && html.trim()) || sd?.img || summary?.hasContent
+      if (!hasAny) return null
+      return { key: k, label: SKILL_LABELS[k], icon: sd?.img, html: html?.trim() || '', summary }
+    })
+    .filter(Boolean)
+})
+
+const petTypes = computed(() => {
+  const t = props.item?.type
+  return (Array.isArray(t) ? t : [t]).filter(Boolean)
+})
+const equipMain = computed(() =>
+  Object.keys(props.item?.mainStats || {}).map((k) => ({ label: STAT_META[k]?.label || k, value: props.item.mainStats[k] }))
+)
+function bonusRows(arr) {
+  return (arr || []).map((b) => `${b.stat} +${b.value}${b.valueType === 'percent' ? '%' : ''}`)
+}
 </script>
 
 <template>
-  <q-dialog v-model="show">
-    <q-card v-if="item" class="bg-dark" style="min-width: 340px; max-width: 640px; width: 92vw">
-      <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6 ellipsis">{{ item.name || '—' }}</div>
-        <q-space />
-        <q-btn flat round dense icon="close" v-close-popup />
-      </q-card-section>
-
-      <q-card-section class="scroll" style="max-height: 78vh">
-        <!-- ===== HERO ===== -->
-        <template v-if="kind === 'hero'">
-          <div class="row q-gutter-sm q-mb-md">
-            <div v-for="im in heroImgs" :key="im.label" class="text-center">
-              <img :src="im.src" @error="(e) => (e.target.src = FALLBACK)"
-                   style="width: 96px; height: 96px; object-fit: cover; border-radius: 8px; border: 1px solid #30363d" />
-              <div class="text-caption text-grey-5">{{ im.label }}</div>
-            </div>
+  <q-dialog v-model="show" transition-show="jump-up" transition-hide="jump-down">
+    <q-card v-if="item" class="detail-card">
+      <!-- ===== BANNER ===== -->
+      <div class="banner" :style="{ background: theme.grad }">
+        <q-btn flat round dense icon="close" color="white" class="banner-close" v-close-popup />
+        <div class="banner-portrait" :style="{ borderColor: theme.color, boxShadow: `0 0 22px ${theme.color}66` }">
+          <img :src="mainImg || FALLBACK" @error="onErr" />
+        </div>
+        <div class="banner-info">
+          <div class="banner-name">{{ item.name || '—' }}</div>
+          <div class="row items-center q-gutter-xs q-mt-xs">
+            <q-badge v-if="item.rarity" :style="{ backgroundColor: theme.color }" :label="item.rarity" />
+            <q-badge v-if="item.type && !Array.isArray(item.type)" color="white" text-color="dark" :label="item.type" />
+            <q-badge v-for="t in (Array.isArray(item.type) ? item.type : [])" :key="t" color="white" text-color="dark" :label="t" />
+            <q-badge v-if="kind === 'ring' && item.grade" :style="{ backgroundColor: theme.color }" :label="'เกรด ' + item.grade" />
+            <q-badge v-if="kind === 'equip' && item.setType" :style="{ backgroundColor: theme.color }" :label="item.setType" />
           </div>
-          <div class="row q-gutter-xs q-mb-md">
-            <q-badge v-if="item.rarity" color="deep-orange-9" :label="item.rarity" />
-            <q-badge v-if="item.type" color="blue-9" :label="item.type" />
-            <q-badge v-if="item.affiliation" color="purple-9" :label="item.affiliation" />
-            <q-badge v-if="item.attackType" color="teal-9" :label="item.attackType === 'physical' ? 'กายภาพ' : 'เวท'" />
-          </div>
+          <div v-if="item.affiliation" class="banner-affil">{{ item.affiliation }}</div>
 
-          <template v-if="baseStats.length">
-            <div class="text-subtitle2 q-mb-xs">📊 สเตตัสพื้นฐาน</div>
-            <div class="row q-col-gutter-xs q-mb-md">
-              <div v-for="st in baseStats" :key="st.key" class="col-4">
-                <div class="stat-box">
-                  <div class="text-caption text-grey-5">{{ st.label }}</div>
-                  <div class="text-weight-bold">{{ st.value }}{{ st.pct ? '%' : '' }}</div>
-                </div>
+          <!-- ปุ่มสลับ ปกติ / ตื่นรู้ -->
+          <q-btn-toggle
+            v-if="hasAwaken"
+            v-model="mode"
+            no-caps
+            rounded
+            unelevated
+            size="sm"
+            class="q-mt-sm awaken-toggle"
+            toggle-color="deep-purple-5"
+            color="dark"
+            text-color="grey-4"
+            :options="[
+              { label: '🧍 ปกติ', value: 'normal' },
+              { label: '🌟 ตื่นรู้', value: 'awaken' },
+            ]"
+          />
+        </div>
+        <img v-if="accImg" :src="accImg" @error="onErr" class="banner-acc" :title="'อุปกรณ์'" />
+      </div>
+
+      <!-- ===== BODY ===== -->
+      <q-card-section class="detail-body scroll">
+        <!-- สเตตัส (ฮีโร่ / เซ็ต) -->
+        <template v-if="primaryStats.length || secondaryStats.length">
+          <div class="section-title">📊 {{ isAwaken ? 'สเตตัสตื่นรู้' : 'สเตตัสพื้นฐาน' }}</div>
+          <div class="stat-primary-grid q-mb-sm">
+            <div v-for="st in primaryStats" :key="st.key" class="stat-primary" :style="{ borderColor: theme.color + '55' }">
+              <div class="stat-ico">{{ st.icon }}</div>
+              <div>
+                <div class="stat-lbl">{{ st.label }}</div>
+                <div class="stat-val">{{ st.value }}{{ st.pct ? '%' : '' }}</div>
               </div>
             </div>
-          </template>
-
-          <template v-if="skills.length">
-            <div class="text-subtitle2 q-mb-xs">🎯 สกิล</div>
-            <div v-for="sk in skills" :key="sk.key" class="q-mb-sm">
-              <div class="text-weight-bold text-blue-4">{{ sk.label }}</div>
-              <div class="skill-html" v-html="sk.html"></div>
-            </div>
-          </template>
+          </div>
+          <div v-if="secondaryStats.length" class="row q-gutter-xs q-mb-md">
+            <q-chip v-for="st in secondaryStats" :key="st.key" dense square color="grey-9" text-color="grey-3" class="stat-chip">
+              <span class="q-mr-xs">{{ st.icon }}</span>{{ st.label }}
+              <span class="text-weight-bold q-ml-xs">{{ st.value }}{{ st.pct ? '%' : '' }}</span>
+            </q-chip>
+          </div>
         </template>
 
-        <!-- ===== PET ===== -->
-        <template v-else-if="kind === 'pet'">
-          <div class="row items-center q-gutter-md q-mb-md">
-            <img :src="item.img || FALLBACK" @error="(e) => (e.target.src = FALLBACK)"
-                 style="width: 110px; height: 110px; object-fit: cover; border-radius: 10px; border: 1px solid #30363d" />
-            <div>
-              <q-badge v-if="item.rarity" color="deep-orange-9" :label="item.rarity" class="q-mb-xs" />
-              <div class="row q-gutter-xs">
-                <q-badge v-for="t in (Array.isArray(item.type) ? item.type : [item.type]).filter(Boolean)"
-                         :key="t" color="green-9" :label="t" />
-              </div>
+        <!-- สกิล (ฮีโร่) -->
+        <template v-if="skills.length">
+          <div class="section-title">🎯 สกิล</div>
+          <div v-for="sk in skills" :key="sk.key" class="skill-card" :style="{ borderLeftColor: theme.color }">
+            <div class="skill-head">
+              <img v-if="sk.icon" :src="sk.icon" @error="onErr" class="skill-ico" />
+              <span class="skill-label">{{ sk.label }}</span>
+              <span v-if="sk.summary && sk.summary.hits" class="skill-meta">
+                🎯 {{ sk.summary.targets || 1 }} เป้า · {{ sk.summary.hits }} ครั้ง
+              </span>
             </div>
+            <!-- scaling -->
+            <div v-if="sk.summary && sk.summary.scaling" class="skill-scaling">
+              💢 ความเสียหาย: {{ sk.summary.scaling }}
+            </div>
+            <!-- effects -->
+            <div v-if="sk.summary && sk.summary.effects.length" class="row q-gutter-xs q-mt-xs">
+              <q-badge v-for="(ef, i) in sk.summary.effects" :key="i" :color="ef.color" :label="ef.label" />
+            </div>
+            <!-- คำอธิบายเต็ม (ถ้ามี) -->
+            <div v-if="sk.html" class="skill-html q-mt-xs" v-html="sk.html"></div>
           </div>
-          <template v-if="item.skill">
-            <div class="text-subtitle2 q-mb-xs">🎯 สกิล</div>
+        </template>
+
+        <!-- สกิลสัตว์เลี้ยง -->
+        <template v-if="kind === 'pet' && item.skill">
+          <div class="section-title">🎯 สกิล</div>
+          <div class="skill-card" :style="{ borderLeftColor: theme.color }">
             <div class="skill-html" v-html="item.skill"></div>
-          </template>
+          </div>
         </template>
 
-        <!-- ===== RING ===== -->
-        <template v-else-if="kind === 'ring'">
-          <div class="row items-center q-gutter-md q-mb-md">
-            <img :src="item.img || FALLBACK" @error="(e) => (e.target.src = FALLBACK)"
-                 style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 2px solid #eab308" />
-            <div>
-              <q-badge v-if="item.grade" color="amber-8" :label="'เกรด ' + item.grade" class="q-mb-xs" />
-              <div v-if="item.ringType" class="text-grey-4">{{ item.ringType }}</div>
-            </div>
-          </div>
-          <div v-if="item.desc" class="skill-html">{{ item.desc }}</div>
+        <!-- แหวน -->
+        <template v-if="kind === 'ring' && item.desc">
+          <div class="section-title">📜 คำอธิบาย</div>
+          <div class="desc-box">{{ item.desc }}</div>
         </template>
 
-        <!-- ===== EQUIP SET ===== -->
-        <template v-else-if="kind === 'equip'">
-          <div class="row items-center q-gutter-md q-mb-md">
-            <img :src="item.img || FALLBACK" @error="(e) => (e.target.src = FALLBACK)"
-                 style="width: 110px; height: 110px; object-fit: cover; border-radius: 10px; border: 1px solid #30363d" />
-            <div>
-              <q-badge v-if="item.setType" color="orange-9" :label="item.setType" class="q-mb-xs" />
-              <div v-if="item.desc" class="text-grey-4 text-caption" style="max-width: 260px">{{ item.desc }}</div>
-            </div>
-          </div>
-
+        <!-- เซ็ตอุปกรณ์: main stats + set bonus -->
+        <template v-if="kind === 'equip'">
           <template v-if="equipMain.length">
-            <div class="text-subtitle2 q-mb-xs">📊 ค่าหลัก</div>
-            <div class="row q-col-gutter-xs q-mb-md">
-              <div v-for="st in equipMain" :key="st.label" class="col-4">
-                <div class="stat-box">
-                  <div class="text-caption text-grey-5">{{ st.label }}</div>
-                  <div class="text-weight-bold">{{ st.value }}</div>
+            <div class="section-title">📊 ค่าหลัก</div>
+            <div class="stat-primary-grid q-mb-md">
+              <div v-for="st in equipMain" :key="st.label" class="stat-primary" :style="{ borderColor: theme.color + '55' }">
+                <div>
+                  <div class="stat-lbl">{{ st.label }}</div>
+                  <div class="stat-val">{{ st.value }}</div>
                 </div>
               </div>
             </div>
           </template>
-
           <template v-if="item.setBonus">
-            <div class="text-subtitle2 q-mb-xs">🎁 โบนัสเซ็ต</div>
-            <div v-for="(arr, key) in item.setBonus" :key="key" class="q-mb-xs">
-              <q-badge color="indigo" :label="key.toUpperCase()" class="q-mr-sm" />
-              <span class="text-grey-3">{{ bonusRows(arr).join(' · ') }}</span>
+            <div class="section-title">🎁 โบนัสเซ็ต</div>
+            <div v-for="(arr, key) in item.setBonus" :key="key" class="bonus-row">
+              <q-badge :style="{ backgroundColor: theme.color }" :label="String(key).toUpperCase()" />
+              <span class="q-ml-sm text-grey-3">{{ bonusRows(arr).join(' · ') }}</span>
             </div>
           </template>
         </template>
@@ -179,11 +226,166 @@ const equipMain = computed(() => {
 </template>
 
 <style scoped>
-.stat-box {
+.detail-card {
+  width: 92vw;
+  max-width: 560px;
+  background: #0f1420;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* ---- Banner ---- */
+.banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 18px 20px;
+}
+.banner-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+.banner-portrait {
+  width: 96px;
+  height: 96px;
+  border-radius: 14px;
+  border: 3px solid;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #000;
+}
+.banner-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.banner-info {
+  flex: 1;
+  min-width: 0;
+}
+.banner-name {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.banner-affil {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 4px;
+}
+.banner-acc {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+.awaken-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ---- Body ---- */
+.detail-body {
+  max-height: 68vh;
+  padding: 16px 18px 20px;
+}
+.section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 14px 0 8px;
+}
+.section-title:first-child {
+  margin-top: 0;
+}
+
+/* สเตตัสหลัก */
+.stat-primary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.stat-primary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   background: #161b22;
-  border: 1px solid #30363d;
+  border: 1px solid;
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.stat-ico {
+  font-size: 1.3rem;
+}
+.stat-lbl {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+.stat-val {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #f1f5f9;
+}
+.stat-chip {
+  font-size: 0.72rem;
+}
+
+/* การ์ดสกิล */
+.skill-card {
+  background: #161b22;
+  border: 1px solid #262d38;
+  border-left: 3px solid;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.skill-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.skill-ico {
+  width: 30px;
+  height: 30px;
   border-radius: 6px;
-  padding: 4px 8px;
-  text-align: center;
+  object-fit: cover;
+  background: #000;
+}
+.skill-label {
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.skill-meta {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-left: auto;
+}
+.skill-scaling {
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  margin-top: 6px;
+}
+
+.desc-box {
+  background: #161b22;
+  border: 1px solid #262d38;
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+.bonus-row {
+  padding: 4px 0;
 }
 </style>
