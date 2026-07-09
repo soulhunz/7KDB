@@ -26,7 +26,9 @@
       "Bash(node inspect.mjs)",
       "Bash(node \"C:/Users/SoulH/AppData/Local/Temp/claude/c--Users-SoulH-Documents-Project-vue-7KDB/0eeb2827-0074-4cf5-8c0f-1b447ab95a3a/scratchpad/gensnapshot.mjs\")",
       "Bash(curl -s \"http://localhost:5173/data.json\")",
-      "Bash(node -e \"let s='';process.stdin.on\\('data',c=>s+=c\\);process.stdin.on\\('end',\\(\\)=>{const d=JSON.parse\\(s\\);console.log\\('__snapshot:',d.__snapshot,'| heroes:',d.heroes.length,'pets:',d.pets.length,'rings:',d.rings.length,'guilds:',d.guilds.length,'skillLib:',d.skillLib.length\\);console.log\\('accessCode leak:',s.toLowerCase\\(\\).includes\\('accesscode'\\)?'YES ❌':'NO ✅'\\);}\\)\")"
+      "Bash(node -e \"let s='';process.stdin.on\\('data',c=>s+=c\\);process.stdin.on\\('end',\\(\\)=>{const d=JSON.parse\\(s\\);console.log\\('__snapshot:',d.__snapshot,'| heroes:',d.heroes.length,'pets:',d.pets.length,'rings:',d.rings.length,'guilds:',d.guilds.length,'skillLib:',d.skillLib.length\\);console.log\\('accessCode leak:',s.toLowerCase\\(\\).includes\\('accesscode'\\)?'YES ❌':'NO ✅'\\);}\\)\")",
+      "Bash(cd \"c:/Users/SoulH/Documents/Project_html/7k-commander\" && grep -oE \"\\\\.\\(text-orange|text-blue|text-green|text-red|text-purple|sb-green|sb-purple|sb-blue|sb-red|sb-head|sb-content\\)\\\\s*\\\\{[^}]*\\\\}\" index.html | head -40)",
+      "Bash(rm -f src/components/EntityCard.vue)"
     ],
     "additionalDirectories": [
       "c:\\Users\\SoulH\\.claude\\projects\\c--Users-SoulH-Documents-Project-vue-7KDB\\memory"

@@ -1,10 +1,18 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useDataStore } from '@/stores/dataStore'
-import EntityCard from '@/components/EntityCard.vue'
+import EntityTile from '@/components/EntityTile.vue'
+import EntityDetailDialog from '@/components/EntityDetailDialog.vue'
 
 const store = useDataStore()
 const search = ref('')
+
+const showDetail = ref(false)
+const selected = ref(null)
+function open(pet) {
+  selected.value = pet
+  showDetail.value = true
+}
 
 const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
@@ -20,23 +28,13 @@ const filtered = computed(() => {
         <div class="text-grey-5">ทั้งหมด {{ store.petCount }} ตัว · แสดง {{ filtered.length }}</div>
       </div>
       <q-space />
-      <q-input
-        v-model="search"
-        dense
-        outlined
-        dark
-        placeholder="ค้นหาชื่อ..."
-        style="min-width: 200px"
-        clearable
-      >
+      <q-input v-model="search" dense outlined dark placeholder="ค้นหาชื่อ..." style="min-width: 200px" clearable>
         <template #prepend><q-icon name="search" /></template>
       </q-input>
     </div>
 
-    <div v-if="store.loading" class="row q-col-gutter-sm">
-      <div v-for="n in 12" :key="n" class="col-6 col-sm-3 col-md-2">
-        <q-skeleton height="180px" />
-      </div>
+    <div v-if="store.loading" class="tile-grid">
+      <q-skeleton v-for="n in 24" :key="n" width="100px" height="124px" />
     </div>
 
     <div v-else-if="!filtered.length" class="text-center text-grey-5 q-pa-xl">
@@ -44,16 +42,17 @@ const filtered = computed(() => {
       ไม่พบสัตว์เลี้ยง
     </div>
 
-    <div v-else class="row q-col-gutter-sm">
-      <div v-for="pet in filtered" :key="pet.id" class="col-6 col-sm-3 col-md-2">
-        <EntityCard
-          :name="pet.name"
-          :img="pet.img"
-          :rarity="pet.rarity"
-          :type="pet.type"
-          :affiliation="pet.affiliation"
-        />
-      </div>
+    <div v-else class="tile-grid">
+      <EntityTile
+        v-for="pet in filtered"
+        :key="pet.id"
+        :name="pet.name"
+        :img="pet.img"
+        :badge="pet.rarity"
+        @click="open(pet)"
+      />
     </div>
+
+    <EntityDetailDialog v-model="showDetail" kind="pet" :item="selected" />
   </q-page>
 </template>

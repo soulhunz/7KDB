@@ -1,11 +1,18 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useDataStore } from '@/stores/dataStore'
+import EntityTile from '@/components/EntityTile.vue'
+import EntityDetailDialog from '@/components/EntityDetailDialog.vue'
 
 const store = useDataStore()
 const search = ref('')
 
-const FALLBACK = 'https://placehold.co/160x160/0d1117/475569?text=%F0%9F%9B%A1%EF%B8%8F'
+const showDetail = ref(false)
+const selected = ref(null)
+function open(set) {
+  selected.value = set
+  showDetail.value = true
+}
 
 const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
@@ -28,8 +35,8 @@ const filtered = computed(() => {
       </q-input>
     </div>
 
-    <div v-if="store.loading" class="row q-col-gutter-sm">
-      <div v-for="n in 8" :key="n" class="col-6 col-sm-4 col-md-3"><q-skeleton height="200px" /></div>
+    <div v-if="store.loading" class="tile-grid">
+      <q-skeleton v-for="n in 16" :key="n" width="100px" height="124px" />
     </div>
 
     <div v-else-if="!filtered.length" class="text-center text-grey-5 q-pa-xl">
@@ -37,25 +44,18 @@ const filtered = computed(() => {
       ไม่พบเซ็ตอุปกรณ์
     </div>
 
-    <div v-else class="row q-col-gutter-sm">
-      <div v-for="set in filtered" :key="set.id" class="col-6 col-sm-4 col-md-3">
-        <q-card class="entity-card bg-dark" bordered>
-          <q-img :src="set.img || FALLBACK" :ratio="1" loading="lazy" no-spinner @error="(e) => (e.target.src = FALLBACK)" />
-          <q-card-section class="q-pa-sm">
-            <div class="text-weight-bold ellipsis" :title="set.name">{{ set.name || 'ไม่มีชื่อ' }}</div>
-            <div v-if="set.desc" class="text-caption text-grey-5 ellipsis-2-lines">{{ set.desc }}</div>
-          </q-card-section>
-        </q-card>
-      </div>
+    <div v-else class="tile-grid">
+      <EntityTile
+        v-for="set in filtered"
+        :key="set.id"
+        :name="set.name"
+        :img="set.img"
+        :badge="set.setType"
+        badge-color="#c2410c"
+        @click="open(set)"
+      />
     </div>
+
+    <EntityDetailDialog v-model="showDetail" kind="equip" :item="selected" />
   </q-page>
 </template>
-
-<style scoped>
-.ellipsis-2-lines {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-</style>
