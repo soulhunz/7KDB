@@ -107,33 +107,26 @@ function bonusRows(arr) {
       <div class="banner" :style="{ background: theme.grad }">
         <q-btn flat round dense icon="close" color="white" class="banner-close" v-close-popup />
 
-        <div class="banner-media">
-          <div class="banner-left">
-            <div class="banner-portrait" :style="{ borderColor: theme.color, boxShadow: `0 0 22px ${theme.color}66` }">
-              <img :src="mainImg || FALLBACK" @error="onErr" />
-            </div>
-            <!-- ปุ่ม Awakening ปุ่มเดียว (กดเปิด/ปิด) ใต้รูป -->
-            <q-btn
-              v-if="hasAwaken"
-              :outline="!awaken"
-              :unelevated="awaken"
-              color="deep-purple-4"
-              no-caps
-              rounded
-              size="sm"
-              class="awaken-btn"
-              label="🌟 ตื่นรู้"
-              @click="awaken = !awaken"
-            />
+        <div class="banner-left">
+          <div class="banner-portrait" :style="{ borderColor: theme.color, boxShadow: `0 0 22px ${theme.color}66` }">
+            <img :src="mainImg || FALLBACK" @error="onErr" />
           </div>
-
-          <!-- รูปอุปกรณ์ (ข้างบน) -->
-          <div v-if="kind === 'hero' && item.accImg" class="acc-top">
-            <img :src="item.accImg" @error="onErr" :style="{ borderColor: theme.color + '77' }" />
-            <div class="acc-top-lbl">🗡️ อุปกรณ์</div>
-          </div>
+          <!-- ปุ่ม Awakening ปุ่มเดียว (กดเปิด/ปิด) ใต้รูป -->
+          <q-btn
+            v-if="hasAwaken"
+            :outline="!awaken"
+            :unelevated="awaken"
+            color="deep-purple-4"
+            no-caps
+            rounded
+            size="sm"
+            class="awaken-btn"
+            label="🌟 ตื่นรู้"
+            @click="awaken = !awaken"
+          />
         </div>
 
+        <!-- ชื่อ + ข้อมูล อยู่ข้างๆ รูป -->
         <div class="banner-info">
           <div class="banner-name">{{ item.name || '—' }}</div>
           <div class="row items-center q-gutter-xs q-mt-xs">
@@ -145,6 +138,12 @@ function bonusRows(arr) {
             <q-badge v-if="item.attackType" color="teal" :label="item.attackType === 'physical' ? 'กายภาพ' : 'เวท'" />
           </div>
           <div v-if="item.affiliation" class="banner-affil">{{ item.affiliation }}</div>
+        </div>
+
+        <!-- รูปอุปกรณ์ มุมขวาล่าง -->
+        <div v-if="kind === 'hero' && item.accImg" class="acc-corner" :style="{ borderColor: theme.color + '99' }">
+          <img :src="item.accImg" @error="onErr" />
+          <q-tooltip>อุปกรณ์</q-tooltip>
         </div>
       </div>
 
@@ -259,26 +258,21 @@ function bonusRows(arr) {
   overflow: hidden;
 }
 
-/* ---- Banner (คอลัมน์: แถวรูปข้างบน แล้วชื่อด้านล่าง) ---- */
+/* ---- Banner (แนวนอน: รูปซ้าย · ชื่อขวา · อุปกรณ์มุมขวาล่าง) ---- */
 .banner {
   position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 14px;
+  align-items: flex-start;
+  gap: 18px;
   padding: 20px;
   flex-shrink: 0;
+  min-height: 180px;
 }
 .banner-close {
   position: absolute;
   top: 6px;
   right: 6px;
   z-index: 2;
-}
-.banner-media {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  flex-wrap: wrap;
 }
 .banner-left {
   flex-shrink: 0;
@@ -302,26 +296,30 @@ function bonusRows(arr) {
   margin-top: 10px;
   width: 140px;
 }
-/* รูปอุปกรณ์ข้างบน (เล็กลง 10px = 120px) */
-.acc-top {
-  text-align: center;
+.banner-info {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px;
+  /* กันข้อความยาวไปทับรูปอุปกรณ์มุมขวาล่าง */
+  padding-right: 108px;
 }
-.acc-top img {
-  width: 120px;
-  height: 120px;
-  object-fit: cover;
-  border-radius: 14px;
+/* รูปอุปกรณ์ มุมขวาล่าง (เล็กลงอีก 20px = 100px) */
+.acc-corner {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  overflow: hidden;
   border: 2px solid;
   background: #000;
+}
+.acc-corner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
-}
-.acc-top-lbl {
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.85);
-  margin-top: 4px;
-}
-.banner-info {
-  min-width: 0;
 }
 .banner-name {
   font-size: 1.5rem;
