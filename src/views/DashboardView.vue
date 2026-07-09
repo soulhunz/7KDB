@@ -5,9 +5,9 @@ import { useDataStore } from '@/stores/dataStore'
 const store = useDataStore()
 
 const stats = computed(() => [
-  { label: 'ฮีโร่', value: store.heroCount, icon: '🦸', to: '/hero-manager', color: 'text-blue-4' },
-  { label: 'สัตว์เลี้ยง', value: store.petCount, icon: '🐾', to: '/pet-manager', color: 'text-green-4' },
-  { label: 'แหวน', value: store.ringCount, icon: '💍', to: '/ring-manager', color: 'text-purple-4' },
+  { label: 'ฮีโร่', value: store.heroCount, icon: '🦸', to: '/gallery?tab=heroes', color: 'text-blue-4' },
+  { label: 'สัตว์เลี้ยง', value: store.petCount, icon: '🐾', to: '/gallery?tab=pets', color: 'text-green-4' },
+  { label: 'แหวน', value: store.ringCount, icon: '💍', to: '/gallery?tab=rings', color: 'text-purple-4' },
   { label: 'กิลด์', value: store.guildCount, icon: '🏰', to: '/guild-manager', color: 'text-orange-4' },
   { label: 'ลูกกิลทั้งหมด', value: store.memberCount, icon: '👥', to: '/member-roster', color: 'text-teal-4' },
 ])

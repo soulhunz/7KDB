@@ -4,9 +4,7 @@ import { NAV_ITEMS } from '@/config/nav'
 // view จริงที่ทำเสร็จแล้ว — map ตาม name
 const readyViews = {
   dashboard: () => import('@/views/DashboardView.vue'),
-  'hero-manager': () => import('@/views/HeroManagerView.vue'),
-  'pet-manager': () => import('@/views/PetManagerView.vue'),
-  'ring-manager': () => import('@/views/RingManagerView.vue'),
+  gallery: () => import('@/views/GalleryView.vue'),
   'member-roster': () => import('@/views/MemberRosterView.vue'),
   'equip-manager': () => import('@/views/EquipManagerView.vue'),
   'skill-lib': () => import('@/views/SkillLibView.vue'),

@@ -12,15 +12,12 @@ export const NAV_GROUPS = [
       { path: '/team-builder-3v3', name: 'team-builder-3v3', icon: '⚔️', label: 'สร้างทีม 3v3', ready: false },
       { path: '/enemy-manager', name: 'enemy-manager', icon: '🎯', label: 'รูปแบบศัตรู', ready: false },
       { path: '/member-roster', name: 'member-roster', icon: '👥', label: 'ข้อมูลลูกกิล', ready: true },
-      { path: '/gallery', name: 'gallery', icon: '🖼️', label: 'แกลเลอรี', ready: false },
+      { path: '/gallery', name: 'gallery', icon: '🖼️', label: 'แกลเลอรี', ready: true },
     ],
   },
   {
     title: 'ฐานข้อมูล',
     items: [
-      { path: '/hero-manager', name: 'hero-manager', icon: '🦸', label: 'ฮีโร่', ready: true },
-      { path: '/pet-manager', name: 'pet-manager', icon: '🐾', label: 'สัตว์เลี้ยง', ready: true },
-      { path: '/ring-manager', name: 'ring-manager', icon: '💍', label: 'แหวน', ready: true },
       { path: '/equip-manager', name: 'equip-manager', icon: '🛡️', label: 'เซ็ตอุปกรณ์', ready: true },
       { path: '/stat-glossary', name: 'stat-glossary', icon: '📖', label: 'อธิบายสเตตัส (AI)', ready: false },
       { path: '/skill-lib', name: 'skill-lib', icon: '📚', label: 'คลังสกิล (AI)', ready: true },
