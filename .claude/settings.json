@@ -36,7 +36,10 @@
       "Bash(wc -l apps-script/code.gs)",
       "Bash(node --check apps-script/code.gs)",
       "Bash(echo \"EXIT: $?\")",
-      "Bash(grep -oE \"googleusercontent\\\\\\\\\\\\\\\\.com|gamewith|CacheFirst|7kdb-images\" dist/sw.js)"
+      "Bash(grep -oE \"googleusercontent\\\\\\\\\\\\\\\\.com|gamewith|CacheFirst|7kdb-images\" dist/sw.js)",
+      "Bash(node \"C:/Users/SoulH/AppData/Local/Temp/claude/c--Users-SoulH-Documents-Project-vue-7KDB/0eeb2827-0074-4cf5-8c0f-1b447ab95a3a/scratchpad/testupdates.mjs\")",
+      "Bash(node \"C:/Users/SoulH/AppData/Local/Temp/claude/c--Users-SoulH-Documents-Project-vue-7KDB/0eeb2827-0074-4cf5-8c0f-1b447ab95a3a/scratchpad/test5.mjs\")",
+      "Bash(node -e \"const d=require\\('c:/Users/SoulH/Documents/Project_vue/7KDB/public/data.json'\\); console.log\\('has versions:', !!d.versions, '| keys:', d.versions?Object.keys\\(d.versions\\).length:0\\); console.log\\('accessCode leak:', JSON.stringify\\(d\\).toLowerCase\\(\\).includes\\('accesscode'\\)\\)\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\SoulH\\.claude\\projects\\c--Users-SoulH-Documents-Project-vue-7KDB\\memory"
