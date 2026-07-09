@@ -2,13 +2,16 @@
 // โครงสร้างข้อมูลอิงตามเวอร์ชัน HTML เดิม (processLoadedData)
 import { defineStore } from 'pinia'
 import { api } from '@/api'
+import { downloadSnapshot } from '@/api/snapshot'
 
 export const useDataStore = defineStore('data', {
   state: () => ({
     loaded: false,
     loading: false,
+    exporting: false,
     error: null,
     timestamp: 0,
+    source: null, // 'snapshot' | 'live' — ข้อมูลชุดนี้มาจากไหน
 
     // ก้อนข้อมูลหลัก
     heroes: [],
@@ -47,6 +50,7 @@ export const useDataStore = defineStore('data', {
       this.error = null
       try {
         const data = await api.getAllData()
+        this.source = data?.__fromSnapshot ? 'snapshot' : 'live'
         this.applyData(data || {})
         this.loaded = true
       } catch (e) {
@@ -54,6 +58,19 @@ export const useDataStore = defineStore('data', {
         console.error('loadAll failed:', e)
       } finally {
         this.loading = false
+      }
+    },
+
+    // [Admin] ดึงข้อมูลสดล่าสุดจาก backend แล้วดาวน์โหลดเป็นไฟล์ data.json
+    // (เอาไปวางใน public/ แล้ว deploy — user จะได้อ่านจาก snapshot แทนการยิง Apps Script)
+    async exportSnapshot() {
+      this.exporting = true
+      try {
+        const live = await api.getAllDataLive()
+        downloadSnapshot(live || {})
+        return live?.timestamp || 0
+      } finally {
+        this.exporting = false
       }
     },
 

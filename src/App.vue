@@ -21,6 +21,20 @@ async function refresh() {
   }
 }
 
+// [Admin] ดึงข้อมูลสด → ดาวน์โหลด data.json ไปวางใน public/ แล้ว deploy
+async function publishSnapshot() {
+  try {
+    await store.exportSnapshot()
+    $q.notify({
+      type: 'positive',
+      timeout: 6000,
+      message: 'ดาวน์โหลด data.json แล้ว — นำไปวางใน public/ แล้ว deploy',
+    })
+  } catch (e) {
+    $q.notify({ type: 'negative', message: ' export ไม่สำเร็จ: ' + (e?.message || e) })
+  }
+}
+
 onMounted(() => {
   // โหลดข้อมูลทั้งหมดตอนเปิดแอป — ไม่มี login
   store.loadAll()
@@ -41,11 +55,16 @@ onMounted(() => {
 
         <q-badge
           v-if="store.loaded"
-          color="positive"
+          :color="store.source === 'snapshot' ? 'info' : 'positive'"
           class="q-mr-sm"
           text-color="white"
         >
-          <q-icon name="cloud_done" size="14px" class="q-mr-xs" /> ออนไลน์
+          <q-icon
+            :name="store.source === 'snapshot' ? 'bolt' : 'cloud_done'"
+            size="14px"
+            class="q-mr-xs"
+          />
+          {{ store.source === 'snapshot' ? 'snapshot' : 'สด' }}
         </q-badge>
 
         <q-btn
@@ -57,6 +76,10 @@ onMounted(() => {
           @click="refresh"
         >
           <q-tooltip>รีเฟรชข้อมูล</q-tooltip>
+        </q-btn>
+
+        <q-btn flat dense round icon="publish" :loading="store.exporting" @click="publishSnapshot">
+          <q-tooltip>เผยแพร่ snapshot (admin) — ดาวน์โหลด data.json</q-tooltip>
         </q-btn>
       </q-toolbar>
     </q-header>
