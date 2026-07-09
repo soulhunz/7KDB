@@ -1,0 +1,40 @@
+/* สไตล์ global ของแอป (นอกเหนือจาก Quasar + Tailwind) */
+:root {
+  --bg-app: #0b0e14;
+}
+
+html,
+body {
+  font-family: 'Kanit', sans-serif;
+  background-color: var(--bg-app);
+}
+
+/* ให้ Quasar page ใช้พื้นหลังโทนเดียวกับเวอร์ชันเดิม */
+.q-page {
+  background-color: var(--bg-app);
+}
+
+/* scrollbar โทนเข้ม */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #444c56;
+}
+
+/* การ์ดฮีโร่/สัตว์เลี้ยง — เอฟเฟกต์ hover */
+.entity-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.entity-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}

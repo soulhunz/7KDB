@@ -1,0 +1,94 @@
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useQuasar } from 'quasar'
+import AppSidebar from '@/components/AppSidebar.vue'
+import { useDataStore } from '@/stores/dataStore'
+
+const $q = useQuasar()
+const store = useDataStore()
+const drawerOpen = ref(true)
+
+function toggleDrawer() {
+  drawerOpen.value = !drawerOpen.value
+}
+
+async function refresh() {
+  await store.loadAll(true)
+  if (store.error) {
+    $q.notify({ type: 'negative', message: 'โหลดข้อมูลไม่สำเร็จ: ' + store.error })
+  } else {
+    $q.notify({ type: 'positive', message: 'อัปเดตข้อมูลแล้ว' })
+  }
+}
+
+onMounted(() => {
+  // โหลดข้อมูลทั้งหมดตอนเปิดแอป — ไม่มี login
+  store.loadAll()
+})
+</script>
+
+<template>
+  <q-layout view="hHh Lpr lFf">
+    <q-header elevated class="bg-dark">
+      <q-toolbar>
+        <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleDrawer" />
+        <q-toolbar-title class="text-weight-bold">
+          <span class="text-primary">7K</span>DB
+          <span class="text-caption text-grey-5 q-ml-sm">Seven Deadly Sins</span>
+        </q-toolbar-title>
+
+        <q-space />
+
+        <q-badge
+          v-if="store.loaded"
+          color="positive"
+          class="q-mr-sm"
+          text-color="white"
+        >
+          <q-icon name="cloud_done" size="14px" class="q-mr-xs" /> ออนไลน์
+        </q-badge>
+
+        <q-btn
+          flat
+          dense
+          round
+          icon="refresh"
+          :loading="store.loading"
+          @click="refresh"
+        >
+          <q-tooltip>รีเฟรชข้อมูล</q-tooltip>
+        </q-btn>
+      </q-toolbar>
+    </q-header>
+
+    <q-drawer
+      v-model="drawerOpen"
+      show-if-above
+      :width="260"
+      :breakpoint="700"
+      bordered
+      class="bg-dark"
+    >
+      <AppSidebar />
+    </q-drawer>
+
+    <q-page-container>
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
+    </q-page-container>
+  </q-layout>
+</template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.12s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

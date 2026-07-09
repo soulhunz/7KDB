@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/SoulH/Documents/**)",
+      "Read(//c/Users/SoulH/**)",
+      "Bash(cd \"c:/Users/SoulH/Documents/Project_html/7k-commander\" && find . -type f -not -path './.git/*' -not -path './node_modules/*' | head -100)",
+      "Read(//c/Users/SoulH/Documents/Project_html/7k-commander/**)",
+      "Bash(cd \"c:/Users/SoulH/Documents/Project_html/7k-commander\" && wc -l *.html && echo \"--- total size ---\" && du -sh *.html)",
+      "Bash(cd \"c:/Users/SoulH/Documents/Project_html/7k-commander\" && head -80 index.html)",
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://localhost:5173/src/App.vue\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://localhost:5173/src/views/HeroManagerView.vue\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://localhost:5173/node_modules/quasar/src/css/index.sass\")",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(pkill -f vite)",
+      "Read(//c/Users/SoulH/.claude/projects/c--Users-SoulH-Documents-Project-vue-7KDB/memory/**)",
+      "Bash(git add *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\SoulH\\.claude\\projects\\c--Users-SoulH-Documents-Project-vue-7KDB\\memory"
+    ]
+  }
+}

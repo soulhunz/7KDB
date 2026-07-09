@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="no-referrer" />
+    <title>7KDB — 7K Seven Deadly Sins</title>
+
+    <!-- Tailwind Play CDN เป็น utility layer (ปิด preflight ไม่ให้ reset ชนกับ Quasar) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // ต้องตั้งค่าหลังจาก CDN โหลด — ปิด preflight + ผูกฟอนต์ Kanit
+      window.tailwind = window.tailwind || {}
+      tailwind.config = {
+        corePlugins: { preflight: false },
+        theme: { extend: { fontFamily: { kanit: ['Kanit', 'sans-serif'] } } },
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
