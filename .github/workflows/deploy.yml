@@ -1,0 +1,46 @@
+name: Deploy to GitHub Pages
+
+# build + deploy อัตโนมัติทุกครั้งที่ push ขึ้น main (หรือกดรันเองจากแท็บ Actions)
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# สิทธิ์ที่ deploy-pages ต้องใช้
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# ให้ deploy ทีละงาน (คิวใหม่ยกเลิกคิวเก่าที่ยังไม่เสร็จ)
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # SPA fallback: GitHub Pages เสิร์ฟ 404.html เมื่อ path ไม่ตรงไฟล์จริง
+      # (refresh หน้าย่อยอย่าง /7KDB/hero-build จะได้ index.html แล้วให้ vue-router จัดการต่อ)
+      - run: cp dist/index.html dist/404.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

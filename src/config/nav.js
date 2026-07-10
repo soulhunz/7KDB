@@ -8,7 +8,7 @@ export const NAV_GROUPS = [
     items: [
       { path: '/', name: 'dashboard', icon: '🏠', label: 'ภาพรวม', ready: true },
       { path: '/preparation', name: 'preparation', icon: '🧠', label: 'วางแผน (AI)', ready: false },
-      { path: '/hero-build', name: 'hero-build', icon: '🔨', label: 'บิ้วตัวละคร', ready: false },
+      { path: '/hero-build', name: 'hero-build', icon: '🔨', label: 'บิ้วตัวละคร', ready: true },
       { path: '/team-builder-3v3', name: 'team-builder-3v3', icon: '⚔️', label: 'สร้างทีม 3v3', ready: false },
       { path: '/enemy-manager', name: 'enemy-manager', icon: '🎯', label: 'รูปแบบศัตรู', ready: false },
       { path: '/member-roster', name: 'member-roster', icon: '👥', label: 'ข้อมูลลูกกิล', ready: true },

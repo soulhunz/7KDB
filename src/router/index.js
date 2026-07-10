@@ -5,6 +5,7 @@ import { NAV_ITEMS } from '@/config/nav'
 const readyViews = {
   dashboard: () => import('@/views/DashboardView.vue'),
   gallery: () => import('@/views/GalleryView.vue'),
+  'hero-build': () => import('@/views/HeroBuildView.vue'),
   'member-roster': () => import('@/views/MemberRosterView.vue'),
   'equip-manager': () => import('@/views/EquipManagerView.vue'),
   'skill-lib': () => import('@/views/SkillLibView.vue'),
@@ -25,7 +26,8 @@ const routes = NAV_ITEMS.map((item) => ({
 routes.push({ path: '/:pathMatch(.*)*', redirect: '/' })
 
 const router = createRouter({
-  history: createWebHistory(),
+  // ใช้ BASE_URL เพื่อรองรับ deploy ใต้ sub-path (GitHub Pages = /7KDB/)
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
   scrollBehavior: () => ({ top: 0 }),
 })

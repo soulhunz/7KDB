@@ -5,7 +5,10 @@ import { quasar, transformAssetUrls } from '@quasar/vite-plugin'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
-export default defineConfig({
+// base: ตอน build (production) เสิร์ฟใต้ sub-path ของ GitHub Pages = /7KDB/
+//        ตอน dev เสิร์ฟที่ราก / ตามปกติ
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? '/7KDB/' : '/',
   plugins: [
     vue({
       template: { transformAssetUrls },
@@ -50,4 +53,4 @@ export default defineConfig({
     port: 5173,
     open: true,
   },
-})
+}))
