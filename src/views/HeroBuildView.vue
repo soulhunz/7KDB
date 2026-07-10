@@ -4,6 +4,7 @@ import { useQuasar } from 'quasar'
 import { useDataStore } from '@/stores/dataStore'
 import HeroBuildEditor from '@/components/HeroBuildEditor.vue'
 import HeroBuildShareDialog from '@/components/HeroBuildShareDialog.vue'
+import HeroBuildDetailDialog from '@/components/HeroBuildDetailDialog.vue'
 import { defaultBuild, normalizeBuildData, decodeBuild } from '@/config/heroBuild'
 
 const store = useDataStore()
@@ -13,10 +14,10 @@ const LS_KEY = '7kdb_hero_build'
 const FALLBACK = 'https://placehold.co/64x64/0d1117/475569?text=%3F'
 const onErr = (e) => (e.target.src = FALLBACK)
 
-// ---- โหมด: list = รายการบิ้วที่เผยแพร่ | editor = หน้าบิ้ว ----
+// ---- โหมด: list = รายการบิ้วที่แชร์ | editor = สร้าง/แก้บิ้วของฉัน ----
 const mode = ref('list')
 
-// ---- state ของบิ้วที่กำลังแก้ (persist ลง localStorage เหมือน 7k-commander) ----
+// ---- state ของบิ้วที่กำลังสร้าง (persist ลง localStorage) ----
 function loadLS() {
   try {
     const s = JSON.parse(localStorage.getItem(LS_KEY))
@@ -25,8 +26,6 @@ function loadLS() {
   return defaultBuild()
 }
 const editorBuild = reactive(loadLS())
-const editingId = ref(null) // ถ้ามาจากบิ้วที่เผยแพร่ → เผยแพร่ทับ id เดิม
-const editingOwner = ref('')
 
 watch(editorBuild, (v) => {
   try { localStorage.setItem(LS_KEY, JSON.stringify(v)) } catch { /* ignore */ }
@@ -36,7 +35,7 @@ function replaceBuild(data) {
   Object.assign(editorBuild, normalizeBuildData(data))
 }
 
-// ---- รายการบิ้วที่เผยแพร่ ----
+// ---- รายการบิ้วที่แชร์ ----
 const search = ref('')
 const cards = computed(() => {
   const builds = Array.isArray(store.heroBuilds) ? store.heroBuilds.slice().reverse() : []
@@ -60,17 +59,16 @@ const filtered = computed(() => {
   )
 })
 
-// ---- action ----
-function newBuild() {
-  Object.assign(editorBuild, defaultBuild())
-  editingId.value = null
-  editingOwner.value = ''
-  mode.value = 'editor'
+// ---- ดูรายละเอียดบิ้วที่แชร์ (อ่านอย่างเดียว) ----
+const showDetail = ref(false)
+const selectedBuild = ref(null)
+function openDetail(build) {
+  selectedBuild.value = build
+  showDetail.value = true
 }
-function viewPublished(entry) {
-  replaceBuild(entry.build.data)
-  editingId.value = entry.build.id
-  editingOwner.value = entry.build.owner || ''
+
+// ---- สร้าง / แก้บิ้วของฉัน ----
+function newBuild() {
   mode.value = 'editor'
 }
 function backToList() { mode.value = 'list' }
@@ -78,11 +76,9 @@ function resetBuild() {
   $q.dialog({
     title: 'ล้างบิ้ว',
     message: 'ล้างหน้านี้ทั้งหมด? (ตัวละคร + ดาว + เซต + อุปกรณ์)',
-    cancel: true, dark: true, persistent: false,
+    cancel: true, dark: true,
   }).onOk(() => {
     Object.assign(editorBuild, defaultBuild())
-    editingId.value = null
-    editingOwner.value = ''
   })
 }
 
@@ -105,8 +101,6 @@ function openLoad() {
 }
 function onLoadCode(data) {
   replaceBuild(data)
-  editingId.value = null
-  editingOwner.value = ''
   mode.value = 'editor'
   const h = store.heroes.find((x) => String(x.id) === String(editorBuild.heroId))
   $q.notify({ type: 'positive', message: '✅ โหลดบิ้วสำเร็จ' + (h ? ': ' + h.name : (editorBuild.heroId ? ' (⚠️ ไม่พบตัวละครในฐานข้อมูล)' : '')) })
@@ -118,14 +112,11 @@ async function onPublish({ name, owner }) {
   const data = JSON.parse(JSON.stringify(editorBuild))
   const oid = (owner || '').replace(/\W/g, '').slice(0, 6) || 'x'
   const rand = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6)
-  const id = editingId.value || ('build_' + Date.now() + '_' + oid + '_' + rand)
-  const record = { id, name, owner, heroId: editorBuild.heroId, data, ts: Date.now() }
+  const record = { id: 'build_' + Date.now() + '_' + oid + '_' + rand, name, owner, heroId: editorBuild.heroId, data, ts: Date.now() }
   try {
     await store.publishBuild(record)
     showShare.value = false
-    $q.notify({ type: 'positive', message: editingId.value ? '✅ อัปเดตบิ้วแล้ว' : '✅ เผยแพร่บิ้วสำเร็จ!' })
-    editingId.value = id
-    editingOwner.value = owner
+    $q.notify({ type: 'positive', message: '✅ เผยแพร่บิ้วสำเร็จ!' })
     mode.value = 'list'
   } catch (e) {
     $q.notify({ type: 'negative', message: '⚠️ เผยแพร่ไม่สำเร็จ: ' + (e?.message || e) })
@@ -134,22 +125,7 @@ async function onPublish({ name, owner }) {
   }
 }
 
-function askDelete(entry) {
-  $q.dialog({
-    title: 'ลบบิ้ว',
-    message: `ลบบิ้ว "${entry.build.name || 'ไม่มีชื่อ'}" ออกจากรายการ?`,
-    cancel: true, dark: true, ok: { label: 'ลบ', color: 'negative' },
-  }).onOk(async () => {
-    try {
-      await store.deleteBuild(entry.build.id)
-      $q.notify({ type: 'positive', message: '🗑️ ลบบิ้วแล้ว' })
-    } catch (e) {
-      $q.notify({ type: 'negative', message: 'ลบไม่สำเร็จ: ' + (e?.message || e) })
-    }
-  })
-}
-
-// ---- เปิดจากลิงก์แชร์ ?build=CODE ----
+// ---- เปิดจากลิงก์แชร์ ?build=CODE → เข้าตัวแก้ไข (บิ้วใหม่จากโค้ด) ----
 onMounted(() => {
   try {
     const params = new URLSearchParams(window.location.search)
@@ -158,11 +134,9 @@ onMounted(() => {
     const res = decodeBuild(code)
     if (res.ok && res.data) {
       replaceBuild(res.data)
-      editingId.value = null
       mode.value = 'editor'
       $q.notify({ type: 'positive', message: '🔗 เปิดบิ้วจากลิงก์แล้ว' })
     }
-    // ลบ ?build= ออกจาก URL กัน reload โหลดซ้ำ
     const u = new URL(window.location.href)
     u.searchParams.delete('build')
     window.history.replaceState(null, '', u.pathname + (u.search || '') + (u.hash || ''))
@@ -172,12 +146,12 @@ onMounted(() => {
 
 <template>
   <q-page class="q-pa-md">
-    <!-- ===== LIST MODE ===== -->
+    <!-- ===== LIST MODE (รายการบิ้วที่แชร์ — อ่านอย่างเดียว) ===== -->
     <template v-if="mode === 'list'">
       <div class="row items-center q-mb-md">
         <div>
           <div class="text-h5 text-weight-bold">🔨 บิ้วตัวละคร</div>
-          <div class="text-grey-5">รายการบิ้วที่เผยแพร่ {{ store.heroBuilds.length }} · แสดง {{ filtered.length }}</div>
+          <div class="text-grey-5">รายการบิ้วที่แชร์ {{ store.heroBuilds.length }} · แสดง {{ filtered.length }}</div>
         </div>
         <q-space />
         <q-input v-model="search" dense outlined dark clearable placeholder="ค้นหาบิ้ว/ผู้สร้าง/ตัวละคร..." style="min-width: 240px">
@@ -193,13 +167,13 @@ onMounted(() => {
         <div class="text-h2 q-mb-sm">📋</div>
         <div v-if="store.heroBuilds.length">ไม่พบบิ้วที่ตรงกับคำค้น</div>
         <template v-else>
-          <div>ยังไม่มีบิ้วที่เผยแพร่</div>
+          <div>ยังไม่มีบิ้วที่แชร์</div>
           <div class="text-caption text-grey-6 q-mt-xs">กดปุ่ม + มุมขวาล่างเพื่อสร้างบิ้วของคุณ</div>
         </template>
       </div>
 
       <div v-else class="build-grid">
-        <div v-for="c in filtered" :key="c.build.id" class="build-card" @click="viewPublished(c)">
+        <div v-for="c in filtered" :key="c.build.id" class="build-card" @click="openDetail(c.build)">
           <div class="build-portrait">
             <img v-if="c.hero" :src="c.hero.img || FALLBACK" @error="onErr" />
             <span v-else class="build-portrait-empty">🦸</span>
@@ -210,18 +184,15 @@ onMounted(() => {
             <div class="build-owner">โดย {{ c.build.owner || 'ไม่ระบุ' }}</div>
             <div v-if="c.set" class="build-set">🛡️ {{ c.set.name }}</div>
           </div>
-          <q-btn round dense flat size="sm" icon="delete" color="grey-6" class="build-del" @click.stop="askDelete(c)">
-            <q-tooltip>ลบบิ้ว</q-tooltip>
-          </q-btn>
         </div>
       </div>
     </template>
 
-    <!-- ===== EDITOR MODE ===== -->
+    <!-- ===== EDITOR MODE (สร้างบิ้วของฉัน) ===== -->
     <template v-else>
       <div class="row items-center q-mb-md">
         <q-btn flat dense round icon="arrow_back" color="grey-4" @click="backToList" />
-        <div class="text-h6 text-weight-bold q-ml-sm">🔨 {{ editingId ? 'แก้ไขบิ้ว' : 'บิ้วใหม่' }}</div>
+        <div class="text-h6 text-weight-bold q-ml-sm">🔨 สร้างบิ้ว</div>
       </div>
       <HeroBuildEditor :build="editorBuild" />
     </template>
@@ -250,6 +221,7 @@ onMounted(() => {
       @publish="onPublish"
       @load="onLoadCode"
     />
+    <HeroBuildDetailDialog v-model="showDetail" :build="selectedBuild" />
   </q-page>
 </template>
 
@@ -278,11 +250,9 @@ onMounted(() => {
 .build-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .build-portrait-empty { font-size: 1.6rem; opacity: 0.3; }
 .build-meta { min-width: 0; flex: 1; }
-.build-name { font-size: 0.95rem; font-weight: 800; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 24px; }
+.build-name { font-size: 0.95rem; font-weight: 800; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .build-hero { font-size: 0.78rem; color: #93c5fd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .build-owner { font-size: 0.7rem; color: #6b7280; }
 .build-set { font-size: 0.72rem; color: rgba(34, 211, 238, 0.85); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.build-del { position: absolute; top: 8px; right: 8px; opacity: 0; transition: opacity 0.12s; }
-.build-card:hover .build-del { opacity: 1; }
 .fab-col { display: flex; flex-direction: column; gap: 10px; align-items: center; }
 </style>

@@ -1,7 +1,9 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useQuasar } from 'quasar'
+import { useDataStore } from '@/stores/dataStore'
 import { encodeBuild, decodeBuild, normalizeBuildData } from '@/config/heroBuild'
+import { renderBuildCanvas, shareCanvas } from '@/utils/buildImage'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -14,10 +16,28 @@ const emit = defineEmits(['update:modelValue', 'publish', 'load'])
 const show = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) })
 
 const $q = useQuasar()
+const store = useDataStore()
 
 const name = ref('')
 const owner = ref('')
 const code = ref('')
+const imgBusy = ref(false)
+
+async function shareImage() {
+  if (imgBusy.value) return
+  imgBusy.value = true
+  try {
+    const wrapped = { name: name.value.trim() || 'บิ้วตัวละคร', owner: owner.value.trim(), data: props.build }
+    const cv = await renderBuildCanvas(wrapped, store)
+    const fn = `7kdb-${(wrapped.name).replace(/[\\/:*?"<>|]+/g, '').trim() || 'build'}.png`
+    const res = await shareCanvas(cv, fn, wrapped.name)
+    if (res === 'downloaded') $q.notify({ type: 'info', message: 'อุปกรณ์นี้แชร์รูปไม่ได้ — ดาวน์โหลดให้แทนแล้ว', timeout: 2500 })
+  } catch (e) {
+    $q.notify({ type: 'negative', message: 'แชร์รูปไม่สำเร็จ: ' + (e?.message || e) })
+  } finally {
+    imgBusy.value = false
+  }
+}
 
 watch(
   () => [props.modelValue, props.mode],
@@ -111,6 +131,7 @@ function doLoad() {
             />
             <q-btn outline color="grey-4" no-caps icon="content_copy" label="คัดลอกโค้ด" @click="copyCode" />
             <q-btn outline color="blue-4" no-caps icon="link" label="คัดลอกลิงก์" @click="copyLink" />
+            <q-btn outline color="teal-4" no-caps icon="image" label="แชร์เป็นรูป" :loading="imgBusy" @click="shareImage" />
           </div>
         </template>
 
