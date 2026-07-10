@@ -22,8 +22,10 @@ const routes = NAV_ITEMS.map((item) => ({
   meta: { label: item.label, icon: item.icon },
 }))
 
-// 404 -> กลับหน้าแรก
-routes.push({ path: '/:pathMatch(.*)*', redirect: '/' })
+// หน้าแรก + 404 -> ไปหน้าบิ้วตัวละคร (หน้า dashboard ปิดชั่วคราว)
+const HOME = '/hero-build'
+routes.push({ path: '/', redirect: HOME })
+routes.push({ path: '/:pathMatch(.*)*', redirect: HOME })
 
 const router = createRouter({
   // ใช้ BASE_URL เพื่อรองรับ deploy ใต้ sub-path (GitHub Pages = /7KDB/)

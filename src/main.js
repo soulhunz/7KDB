@@ -1,6 +1,6 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import { Quasar, Notify, Dark, Loading } from 'quasar'
+import { Quasar, Notify, Dark, Loading, Dialog } from 'quasar'
 
 // ไอคอน + สไตล์ Quasar
 import '@quasar/extras/material-icons/material-icons.css'
@@ -17,7 +17,7 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(router)
 app.use(Quasar, {
-  plugins: { Notify, Dark, Loading },
+  plugins: { Notify, Dark, Loading, Dialog },
   config: {
     dark: true, // เปิด dark mode เป็นค่าเริ่มต้น
   },

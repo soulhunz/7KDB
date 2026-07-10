@@ -56,8 +56,118 @@ export const hbRelicTier = (key) => HB_RELIC_TIERS.find((x) => x.key === key)
 
 export const HB_SKILL_LABELS = { n: 'สกิลปกติ', s1: 'สกิล 1', s2: 'สกิล 2', p: 'พาสซีฟ', aw: 'ปลุกพลัง' }
 
+// แถวสเตตัสที่โชว์ในตัวแก้ไข  [key, label, เป็น %]
+export const BUILD_SHOW = [
+  ['hp', 'HP', false], ['atk', 'พลังโจมตี', false], ['def', 'พลังป้องกัน', false], ['spd', 'ความเร็ว', false],
+  ['critRate', 'อัตราคริติคอล', true], ['critDmg', 'ความเสียหายคริติคอล', true], ['weakness', 'อัตราโจมตีจุดอ่อน', true],
+  ['acc', 'ผลเข้าเป้า', true], ['block', 'อัตราบล็อก', true], ['resist', 'ต้านทานผล', true], ['dmgRed', 'ลดความเสียหาย', true],
+]
+
+// อัพเกรดออฟรองรวมต่อ 1 ชิ้น ได้สูงสุด 5 ระดับ
+export const MAX_SUB_UP = 5
+
+const BUILD_FLAT_KEYS = { atkFlat: 1, defFlat: 1, hpFlat: 1, spd: 1 }
+export const buildIsPct = (k) => !BUILD_FLAT_KEYS[k]
+
+// ---- โครงสร้างบิ้วเปล่า ----
+export const blankPiece = () => ({ mainKey: '', subs: [{ key: '', up: 0 }, { key: '', up: 0 }, { key: '', up: 0 }, { key: '', up: 0 }] })
+export const blankRelic = () => [{ stat: '', tier: 'gold' }, { stat: '', tier: 'gold' }, { stat: '', tier: 'gold' }, { stat: '', tier: 'gold' }]
+export const defaultBuild = () => ({ heroId: null, setId: '', blueStars: 0, redStars: 0, awakened: false, skillUp: {}, relic: blankRelic(), pieces: [blankPiece(), blankPiece(), blankPiece(), blankPiece()] })
+
+function sanitizePiece(p) {
+  const subs = p && Array.isArray(p.subs) ? p.subs.slice(0, 4) : []
+  while (subs.length < 4) subs.push({ key: '', up: 0 })
+  return { mainKey: (p && p.mainKey) || '', subs: subs.map((s) => ({ key: (s && s.key) || '', up: parseInt(s && s.up) || 0 })) }
+}
+
+// ทำความสะอาดข้อมูลบิ้วให้ครบรูปแบบ (ใช้ตอนโหลดจากโค้ด/บิ้วที่เผยแพร่)
+export function normalizeBuildData(d) {
+  d = d || {}
+  return {
+    heroId: d.heroId || null,
+    setId: d.setId || '',
+    blueStars: parseInt(d.blueStars) || 0,
+    redStars: parseInt(d.redStars) || 0,
+    awakened: !!d.awakened,
+    skillUp: d.skillUp && typeof d.skillUp === 'object' ? { ...d.skillUp } : {},
+    relic: Array.isArray(d.relic) && d.relic.length === 4
+      ? d.relic.map((r) => ({ stat: (r && r.stat) || '', tier: (r && r.tier) || 'gold' }))
+      : blankRelic(),
+    pieces: Array.isArray(d.pieces) && d.pieces.length === 4
+      ? d.pieces.map(sanitizePiece)
+      : [blankPiece(), blankPiece(), blankPiece(), blankPiece()],
+  }
+}
+
+// ---- โค้ดแชร์บิ้ว "HB1.<payload>.<crc>" (port จาก 7k-commander) ----
+const HB_CUR_VER = 1
+const HB_TIERS = ['green', 'blue', 'gold']
+function hbChecksum(str) {
+  let h = 5381
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0
+  return h.toString(36)
+}
+const b64urlEncode = (bin) => btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+function b64urlDecode(b64) {
+  b64 = String(b64).replace(/-/g, '+').replace(/_/g, '/')
+  while (b64.length % 4) b64 += '='
+  return atob(b64)
+}
+function toCompact(o) {
+  o = o || {}
+  const tIdx = (t) => { const i = HB_TIERS.indexOf(t); return i < 0 ? 2 : i }
+  return {
+    v: 1, h: o.heroId || '', s: o.setId || '', b: parseInt(o.blueStars) || 0, r: parseInt(o.redStars) || 0, a: o.awakened ? 1 : 0,
+    u: Object.keys(o.skillUp || {}).filter((k) => o.skillUp[k]),
+    l: (Array.isArray(o.relic) ? o.relic : []).slice(0, 4).map((r) => [(r && r.stat) || '', tIdx(r && r.tier)]),
+    p: (Array.isArray(o.pieces) ? o.pieces : []).slice(0, 4).map((p) => [
+      (p && p.mainKey) || '',
+      (p && Array.isArray(p.subs) ? p.subs : []).slice(0, 4).map((s) => [(s && s.key) || '', parseInt(s && s.up) || 0]),
+    ]),
+  }
+}
+function fromCompact(c) {
+  c = c || {}
+  if (Array.isArray(c.pieces)) return c
+  const pad4 = (arr, blank) => { arr = Array.isArray(arr) ? arr.slice(0, 4) : []; while (arr.length < 4) arr.push(blank()); return arr }
+  const relic = pad4(c.l, () => ['', 2]).map((r) => ({ stat: (r && r[0]) || '', tier: HB_TIERS[(r && r[1]) | 0] || 'gold' }))
+  const pieces = pad4(c.p, () => ['', []]).map((p) => ({
+    mainKey: (p && p[0]) || '',
+    subs: (() => { let s = p && Array.isArray(p[1]) ? p[1].slice(0, 4) : []; while (s.length < 4) s.push(['', 0]); return s.map((x) => ({ key: (x && x[0]) || '', up: parseInt(x && x[1]) || 0 })) })(),
+  }))
+  const skillUp = {}
+  ;(Array.isArray(c.u) ? c.u : []).forEach((k) => { if (k) skillUp[k] = true })
+  return { heroId: c.h || null, setId: c.s || '', blueStars: parseInt(c.b) || 0, redStars: parseInt(c.r) || 0, awakened: !!c.a, skillUp, relic, pieces }
+}
+export function encodeBuild(obj) {
+  try {
+    const json = JSON.stringify(toCompact(obj))
+    const payload = b64urlEncode(unescape(encodeURIComponent(json)))
+    return 'HB1.' + payload + '.' + hbChecksum(payload)
+  } catch { return '' }
+}
+// คืน { ok, data?, reason?, newer? }
+export function decodeBuild(code) {
+  code = String(code || '').trim()
+  const m = code.match(/^HB(\d+)\.([A-Za-z0-9\-_]+)\.([A-Za-z0-9]+)$/)
+  if (m) {
+    const ver = parseInt(m[1], 10)
+    const payload = m[2]
+    const crc = m[3]
+    if (hbChecksum(payload) !== crc) return { ok: false, reason: 'corrupt' }
+    let json, data
+    try { json = decodeURIComponent(escape(b64urlDecode(payload))) } catch { return { ok: false, reason: 'corrupt' } }
+    try { data = JSON.parse(json) } catch { return { ok: false, reason: 'corrupt' } }
+    const full = fromCompact(data)
+    return ver > HB_CUR_VER ? { ok: true, data: full, newer: true } : { ok: true, data: full }
+  }
+  // โค้ดเก่า (raw base64 ของ state เต็ม)
+  try { const data = JSON.parse(decodeURIComponent(escape(atob(code)))); if (data && Array.isArray(data.pieces)) return { ok: true, data, legacy: true } } catch { /* ignore */ }
+  return { ok: false, reason: 'invalid' }
+}
+
 // ค่าออฟหลักตาม key (ชิ้นหน้า idx<2 / ชิ้นหลัง)
-function hbMainVal(idx, key) {
+export function hbMainVal(idx, key) {
   if (!key) return 0
   const list = idx < 2 ? BUILD_FRONT_MAIN : BUILD_BACK_MAIN
   const o = list.find((x) => x[0] === key)

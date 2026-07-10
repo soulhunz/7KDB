@@ -118,6 +118,23 @@ export const useDataStore = defineStore('data', {
       }
     },
 
+    // เผยแพร่บิ้ว 1 รายการ → เขียนขึ้น backend (HeroBuilds sheet) + อัปเดต local ทันที
+    async publishBuild(record) {
+      if (!record || !record.id) throw new Error('ข้อมูลบิ้วไม่ครบ')
+      await api.saveOneItem('hero_builds', record)
+      const i = this.heroBuilds.findIndex((b) => String(b.id) === String(record.id))
+      if (i >= 0) this.heroBuilds.splice(i, 1, record)
+      else this.heroBuilds.push(record)
+      this.persistCache()
+    },
+
+    // ลบบิ้ว 1 รายการ → ลบจาก backend + local
+    async deleteBuild(id) {
+      await api.deleteOneItem('hero_builds', id)
+      this.heroBuilds = this.heroBuilds.filter((b) => String(b.id) !== String(id))
+      this.persistCache()
+    },
+
     // merge เฉพาะ category ที่เปลี่ยน (overwrite ตรง ๆ — รองรับ เพิ่ม/แก้/ลบ)
     applyDelta(changed) {
       if (!changed) return
