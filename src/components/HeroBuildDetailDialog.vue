@@ -113,37 +113,66 @@ const relicExtra = computed(() => {
   return a
 })
 
-// ตารางสเตตัส 2 คอลัมน์ (ลำดับตาม 7k-commander)
+// รวมค่าสเตตัสเสริมจากเซต (blockDmgRed, defPen, ...) ตามชื่อ
+const extraByLabel = computed(() => {
+  const m = {}
+  ;(result.value.extra || []).forEach((x) => { m[x.stat] = (m[x.stat] || 0) + (x.value || 0) })
+  return m
+})
+const ex = (label) => extraByLabel.value[label] || 0
+
+// สเตตัสเสริมจากเซต (โชว์เมื่อมีค่า)
+const MORE_STATS = [
+  ['🚫', 'ไม่สนป้องกัน'],
+  ['🔪', 'ปริมาณความเสียหายโจมตีจุดอ่อน'],
+  ['🎲', 'อัตราปรับใช้ผล'],
+  ['💊', 'เพิ่มปริมาณฟื้นฟูที่ได้รับ'],
+  ['📈', 'ปริมาณความเสียหายที่สร้างขึ้น'],
+  ['👹', 'ปริมาณความเสียหายต่อบอส'],
+]
+
+// ตารางสเตตัส 2 คอลัมน์ (ลำดับตาม 7k-commander) — รวมสเตตัสทุกอย่าง
 const statCols = computed(() => {
   const t = result.value.totals || {}
   const r = relicExtra.value
   const L = (icon, label, value, pct) => ({ icon, label, value, pct })
-  return {
-    left: [
-      L('🗡️', atkLabel.value, fmt(t.atk || 0), false),
-      L('🛡️', 'พลังป้องกัน', fmt(t.def || 0), false),
-      L('❤️', 'HP', fmt(t.hp || 0), false),
-      L('⚡', 'ความเร็วโจมตี', fmt(t.spd || 0), false),
-      L('🎯', 'อัตราคริติคอล', fmt(t.critRate || 0), true),
-      L('💥', 'ความเสียหายคริติคอล', fmt(t.critDmg || 0), true),
-      L('📍', 'อัตราโจมตีจุดอ่อน', fmt(t.weakness || 0), true),
-      L('🧱', 'อัตราบล็อก', fmt(t.block || 0), true),
-    ],
-    right: [
-      L('✨', 'ผลเข้าเป้า', fmt(t.acc || 0), true),
-      L('🧬', 'ต้านทานผล', fmt(t.resist || 0), true),
-      L('🪖', 'ลดความเสียหายที่ได้รับ', fmt(t.dmgRed || 0), true),
-      L('⚔️', 'เสริมความเสียหาย', fmt(r.dmgBoost), true),
-      L('💢', 'บดขยี้', fmt(r.crush), true),
-      L('🤸', 'ยืดหยุ่น', fmt(r.resilience), true),
-      L('💗', 'ฟื้นคืน', fmt(r.recovery), true),
-    ],
-  }
+  const left = [
+    L('🗡️', atkLabel.value, fmt(t.atk || 0), false),
+    L('🛡️', 'พลังป้องกัน', fmt(t.def || 0), false),
+    L('❤️', 'HP', fmt(t.hp || 0), false),
+    L('⚡', 'ความเร็วโจมตี', fmt(t.spd || 0), false),
+    L('🎯', 'อัตราคริติคอล', fmt(t.critRate || 0), true),
+    L('💥', 'ความเสียหายคริติคอล', fmt(t.critDmg || 0), true),
+    L('📍', 'อัตราโจมตีจุดอ่อน', fmt(t.weakness || 0), true),
+    L('🧱', 'อัตราบล็อก', fmt(t.block || 0), true),
+    L('🛡️', 'อัตราลดความเสียหายบล็อก', fmt(ex('อัตราลดความเสียหายบล็อก')), true),
+  ]
+  const right = [
+    L('✨', 'ผลเข้าเป้า', fmt(t.acc || 0), true),
+    L('🧬', 'ต้านทานผล', fmt(t.resist || 0), true),
+    L('🪖', 'ลดความเสียหายที่ได้รับ', fmt(t.dmgRed || 0), true),
+    L('⚔️', 'เสริมความเสียหาย', fmt(r.dmgBoost), true),
+    L('💢', 'บดขยี้', fmt(r.crush), true),
+    L('🤸', 'ยืดหยุ่น', fmt(r.resilience), true),
+    L('💗', 'ฟื้นคืน', fmt(r.recovery), true),
+  ]
+  MORE_STATS.forEach(([icon, label]) => {
+    const v = ex(label)
+    if (v) right.push(L(icon, label, fmt(v), true))
+  })
+  return { left, right }
 })
 
-// เอฟเฟกต์/โบนัสเซตเพิ่มเติม (ตัด 4 สเตตัสของรักที่โชว์ในตารางแล้วออก)
-const RELIC_LABELS = ['เสริมความเสียหาย', 'บดขยี้', 'ยืดหยุ่น', 'ฟื้นคืน']
-const extraStats = computed(() => (result.value.extra || []).filter((x) => !RELIC_LABELS.includes(x.stat)))
+// ชื่อสเตตัสที่โชว์ในตารางแล้ว (กันซ้ำใน badge)
+const SHOWN_LABELS = computed(() => new Set([
+  atkLabel.value, 'พลังป้องกัน', 'HP', 'ความเร็วโจมตี', 'อัตราคริติคอล', 'ความเสียหายคริติคอล',
+  'อัตราโจมตีจุดอ่อน', 'อัตราบล็อก', 'อัตราลดความเสียหายบล็อก', 'ผลเข้าเป้า', 'ต้านทานผล',
+  'ลดความเสียหายที่ได้รับ', 'เสริมความเสียหาย', 'บดขยี้', 'ยืดหยุ่น', 'ฟื้นคืน',
+  ...MORE_STATS.map(([, l]) => l),
+]))
+
+// badge = เฉพาะสเตตัส/เอฟเฟกต์ที่ยังไม่ได้โชว์ในตาราง
+const extraStats = computed(() => (result.value.extra || []).filter((x) => !SHOWN_LABELS.value.has(x.stat)))
 const effects = computed(() => result.value.effects || [])
 
 const relics = computed(() =>
