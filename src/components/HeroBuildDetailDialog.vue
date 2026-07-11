@@ -114,9 +114,14 @@ const relics = computed(() =>
   }).filter(Boolean),
 )
 
-const skillUps = computed(() => {
+// สกิลทั้งหมด (มีรูป) + ไฮไลต์ตัวที่อัป
+const skillCells = computed(() => {
+  const h = hero.value
+  if (!h) return []
   const su = data.value.skillUp || {}
-  return Object.keys(HB_SKILL_LABELS).filter((k) => su[k]).map((k) => HB_SKILL_LABELS[k])
+  return [['n', 'ปกติ'], ['s1', 'สกิล 1'], ['s2', 'สกิล 2'], ['p', 'พาสซีฟ'], ['aw', 'ปลุกพลัง']]
+    .filter(([k]) => k !== 'aw' || data.value.awakened)
+    .map(([k, label]) => ({ k, label, img: h.skillData?.[k]?.img || '', up: !!su[k] }))
 })
 
 function pieceImg(idx) {
@@ -232,10 +237,17 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
           </div>
         </template>
 
-        <template v-if="skillUps.length">
-          <div class="hb-title">⚡ อัปสกิล</div>
-          <div class="row q-gutter-xs q-mb-sm">
-            <q-badge v-for="s in skillUps" :key="s" color="green-7" :label="s" />
+        <template v-if="skillCells.length">
+          <div class="hb-title">⚡ สกิล <span class="hb-skill-hint">(เขียว = อัป)</span></div>
+          <div class="hb-skill-grid q-mb-sm">
+            <div v-for="s in skillCells" :key="s.k" class="hb-skill-cell">
+              <div class="hb-skill-img" :class="{ up: s.up }">
+                <img v-if="s.img" :src="s.img" @error="onErr" />
+                <span v-else class="hb-skill-txt">{{ s.label }}</span>
+                <q-icon v-if="s.up" name="arrow_upward" class="hb-skill-up" />
+              </div>
+              <span class="hb-skill-lbl" :class="{ up: s.up }">{{ s.label }}</span>
+            </div>
           </div>
         </template>
 
@@ -346,6 +358,25 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
   width: 88px; height: 88px; border-radius: 12px; object-fit: cover;
   background: #000; border: 2px solid #7c3aed77; flex-shrink: 0;
 }
+/* สกิล (มีรูป) */
+.hb-skill-hint { font-size: 0.68rem; color: #4ade80; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.hb-skill-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.hb-skill-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.hb-skill-img {
+  position: relative; width: 100%; aspect-ratio: 1; border-radius: 10px; overflow: hidden;
+  border: 2px solid #2a3441; background: #000;
+  display: flex; align-items: center; justify-content: center;
+}
+.hb-skill-img.up { border-color: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.4); }
+.hb-skill-img img { width: 100%; height: 100%; object-fit: cover; }
+.hb-skill-txt { font-size: 0.55rem; color: #6b7280; font-weight: 700; text-align: center; }
+.hb-skill-up {
+  position: absolute; top: 2px; right: 2px; font-size: 13px; color: #fff;
+  background: #22c55e; border-radius: 50%; padding: 1px;
+}
+.hb-skill-lbl { font-size: 0.62rem; color: #94a3b8; text-align: center; }
+.hb-skill-lbl.up { color: #4ade80; font-weight: 700; }
+
 .hb-relic-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .hb-relic {
   display: flex; align-items: center; gap: 8px;
