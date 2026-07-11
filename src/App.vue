@@ -55,12 +55,13 @@ onMounted(() => {
 
         <q-badge
           v-if="store.loaded"
-          :color="store.source === 'ล่าสุดแล้ว' ? 'positive' : 'info'"
+          :color="store.syncing ? 'grey-7' : store.source === 'ล่าสุดแล้ว' ? 'positive' : 'info'"
           class="q-mr-sm"
           text-color="white"
         >
-          <q-icon name="bolt" size="14px" class="q-mr-xs" />
-          {{ store.source || 'พร้อม' }}
+          <q-spinner v-if="store.syncing" size="12px" class="q-mr-xs" />
+          <q-icon v-else name="bolt" size="14px" class="q-mr-xs" />
+          {{ store.syncing ? 'กำลังเช็ค...' : store.source || 'พร้อม' }}
         </q-badge>
 
         <q-btn
@@ -68,7 +69,7 @@ onMounted(() => {
           dense
           round
           icon="refresh"
-          :loading="store.loading"
+          :loading="store.loading || store.syncing"
           @click="refresh"
         >
           <q-tooltip>รีเฟรชข้อมูล</q-tooltip>

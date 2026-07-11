@@ -25,7 +25,8 @@ const CAT_TO_STATE = {
 export const useDataStore = defineStore('data', {
   state: () => ({
     loaded: false,
-    loading: false,
+    loading: false, // โหลดแรกจริง ๆ (ยังไม่มีข้อมูล) → โชว์ skeleton
+    syncing: false, // เช็คอัปเดตเบื้องหลัง (มี cache แล้ว) → ไม่บังหน้าจอ
     exporting: false,
     error: null,
     timestamp: 0,
@@ -66,14 +67,15 @@ export const useDataStore = defineStore('data', {
     // โหลดข้อมูล — full ครั้งแรก แล้ว incremental ครั้งต่อไป
     async loadAll(force = false) {
       if (this.initDone && !force) return
-      this.loading = true
       this.error = null
+      // อ่าน cache ก่อน — ถ้ามีข้อมูลอยู่แล้วให้โชว์ทันที (revalidate เบื้องหลัง ไม่บังหน้าจอ)
+      if (!this.hydrated) {
+        this.hydrateFromCache()
+        this.hydrated = true
+      }
+      if (this.loaded) this.syncing = true
+      else this.loading = true
       try {
-        if (!this.hydrated) {
-          this.hydrateFromCache()
-          this.hydrated = true
-        }
-
         if (this.loaded && this.versions && Object.keys(this.versions).length) {
           // ---- incremental: โหลดเฉพาะที่เปลี่ยน ----
           const res = await api.getUpdates(this.versions)
@@ -103,6 +105,7 @@ export const useDataStore = defineStore('data', {
         console.error('loadAll failed:', e)
       } finally {
         this.loading = false
+        this.syncing = false
       }
     },
 
