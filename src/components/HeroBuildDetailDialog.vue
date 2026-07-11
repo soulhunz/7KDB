@@ -98,10 +98,52 @@ const secondaryStats = computed(() =>
   })),
 )
 
-// รวม stat หลัก + รอง สำหรับตาราง 2 คอลัมน์
-const allStats = computed(() => [...primaryStats.value, ...secondaryStats.value])
+// ป้ายพลังโจมตีตามชนิด (เวท/กายภาพ)
+const atkLabel = computed(() => (hero.value?.attackType === 'magic' ? 'พลังโจมตีเวท' : 'พลังโจมตีกายภาพ'))
 
-const extraStats = computed(() => result.value.extra || [])
+// สเตตัสพิเศษจากของรัก (dmgBoost/crush/resilience/recovery) — คิดจาก relic โดยตรง
+const relicExtra = computed(() => {
+  const a = { dmgBoost: 0, crush: 0, resilience: 0, recovery: 0 }
+  ;(data.value.relic || []).forEach((r) => {
+    if (!r || !r.stat) return
+    const rs = hbRelicStat(r.stat)
+    const ti = { green: 0, blue: 1, gold: 2 }[r?.tier] ?? 2
+    if (rs && a[rs.key] !== undefined) a[rs.key] += rs.vals[ti] || 0
+  })
+  return a
+})
+
+// ตารางสเตตัส 2 คอลัมน์ (ลำดับตาม 7k-commander)
+const statCols = computed(() => {
+  const t = result.value.totals || {}
+  const r = relicExtra.value
+  const L = (icon, label, value, pct) => ({ icon, label, value, pct })
+  return {
+    left: [
+      L('🗡️', atkLabel.value, fmt(t.atk || 0), false),
+      L('🛡️', 'พลังป้องกัน', fmt(t.def || 0), false),
+      L('❤️', 'HP', fmt(t.hp || 0), false),
+      L('⚡', 'ความเร็วโจมตี', fmt(t.spd || 0), false),
+      L('🎯', 'อัตราคริติคอล', fmt(t.critRate || 0), true),
+      L('💥', 'ความเสียหายคริติคอล', fmt(t.critDmg || 0), true),
+      L('📍', 'อัตราโจมตีจุดอ่อน', fmt(t.weakness || 0), true),
+      L('🧱', 'อัตราบล็อก', fmt(t.block || 0), true),
+    ],
+    right: [
+      L('✨', 'ผลเข้าเป้า', fmt(t.acc || 0), true),
+      L('🧬', 'ต้านทานผล', fmt(t.resist || 0), true),
+      L('🪖', 'ลดความเสียหายที่ได้รับ', fmt(t.dmgRed || 0), true),
+      L('⚔️', 'เสริมความเสียหาย', fmt(r.dmgBoost), true),
+      L('💢', 'บดขยี้', fmt(r.crush), true),
+      L('🤸', 'ยืดหยุ่น', fmt(r.resilience), true),
+      L('💗', 'ฟื้นคืน', fmt(r.recovery), true),
+    ],
+  }
+})
+
+// เอฟเฟกต์/โบนัสเซตเพิ่มเติม (ตัด 4 สเตตัสของรักที่โชว์ในตารางแล้วออก)
+const RELIC_LABELS = ['เสริมความเสียหาย', 'บดขยี้', 'ยืดหยุ่น', 'ฟื้นคืน']
+const extraStats = computed(() => (result.value.extra || []).filter((x) => !RELIC_LABELS.includes(x.stat)))
 const effects = computed(() => result.value.effects || [])
 
 const relics = computed(() =>
@@ -205,16 +247,20 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
       <!-- ===== BODY ===== -->
       <q-card-section class="hb-body scroll">
         <div class="hb-title">📊 สเตตัสสุทธิ</div>
-        <div class="hb-stat-table q-mb-sm">
-          <div
-            v-for="(st, i) in allStats"
-            :key="st.key"
-            class="hb-stat-cell"
-            :class="{ primary: i < primaryStats.length }"
-          >
-            <span class="hb-stat-ico">{{ st.icon }}</span>
-            <span class="hb-stat-lbl">{{ st.label }}</span>
-            <span class="hb-stat-val">{{ st.value }}{{ st.pct ? '%' : '' }}</span>
+        <div class="hb-stat-2col q-mb-sm">
+          <div class="hb-stat-col">
+            <div v-for="st in statCols.left" :key="st.label" class="hb-stat-row">
+              <span class="hb-sr-ico">{{ st.icon }}</span>
+              <span class="hb-sr-lbl">{{ st.label }}</span>
+              <span class="hb-sr-val">{{ st.value }}{{ st.pct ? '%' : '' }}</span>
+            </div>
+          </div>
+          <div class="hb-stat-col">
+            <div v-for="st in statCols.right" :key="st.label" class="hb-stat-row">
+              <span class="hb-sr-ico">{{ st.icon }}</span>
+              <span class="hb-sr-lbl">{{ st.label }}</span>
+              <span class="hb-sr-val">{{ st.value }}{{ st.pct ? '%' : '' }}</span>
+            </div>
           </div>
         </div>
         <div v-if="extraStats.length || effects.length" class="row q-gutter-xs q-mb-sm">
@@ -333,24 +379,16 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
   margin: 16px 0 8px;
 }
 .hb-title:first-child { margin-top: 0; }
-/* ตารางสเตตัส 2 คอลัมน์ */
-.hb-stat-table {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1px solid #262d38;
-  border-radius: 10px;
-  overflow: hidden;
-}
-.hb-stat-cell {
+/* ตารางสเตตัส 2 คอลัมน์ (ลำดับตายตัวตาม 7k-commander) */
+.hb-stat-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.hb-stat-col { display: flex; flex-direction: column; gap: 6px; }
+.hb-stat-row {
   display: flex; align-items: center; gap: 8px;
-  padding: 9px 12px;
-  border-bottom: 1px solid #1c2430;
+  background: #161b22; border-radius: 10px; padding: 8px 12px;
 }
-.hb-stat-cell:nth-child(odd) { border-right: 1px solid #1c2430; }
-.hb-stat-cell.primary { background: #12203a; }
-.hb-stat-ico { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
-.hb-stat-lbl { flex: 1; font-size: 0.82rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hb-stat-val { font-weight: 800; color: #f1f5f9; font-size: 0.9rem; white-space: nowrap; }
+.hb-sr-ico { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+.hb-sr-lbl { flex: 1; font-size: 0.8rem; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hb-sr-val { font-weight: 800; color: #fff; font-size: 0.92rem; white-space: nowrap; }
 
 /* ของรัก: รูป + relic stats */
 .hb-relic-wrap { display: flex; gap: 12px; align-items: flex-start; }
