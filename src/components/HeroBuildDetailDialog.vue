@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { useDataStore } from '@/stores/dataStore'
 import { STAT_META } from '@/config/stats'
@@ -70,6 +70,22 @@ const heroImg = computed(() => {
   return data.value.awakened && h.img2 ? h.img2 : h.img
 })
 
+// รูปทั้งหมดที่มีของตัวละคร (ปกติ / ตื่นรู้ / ของรัก) — กดสลับรูปหลักได้
+const heroImages = computed(() => {
+  const h = hero.value
+  if (!h) return []
+  return [
+    { label: 'ปกติ', src: h.img },
+    { label: 'ตื่นรู้', src: h.img2 },
+    { label: 'ของรัก', src: h.accImg },
+  ].filter((x) => x.src && String(x.src).trim())
+})
+const heroAcc = computed(() => hero.value?.accImg || '')
+
+const viewImg = ref(null)
+watch(() => props.build, () => { viewImg.value = null })
+const mainImg = computed(() => viewImg.value || heroImg.value)
+
 const PRIMARY = ['hp', 'atk', 'def', 'spd']
 const SECONDARY = ['critRate', 'critDmg', 'weakness', 'acc', 'block', 'resist', 'dmgRed']
 const fmt = (n) => (Math.round((n + Number.EPSILON) * 10) / 10).toLocaleString()
@@ -81,6 +97,9 @@ const secondaryStats = computed(() =>
     key: k, ...STAT_META[k], value: fmt(result.value.totals[k] || 0),
   })),
 )
+
+// รวม stat หลัก + รอง สำหรับตาราง 2 คอลัมน์
+const allStats = computed(() => [...primaryStats.value, ...secondaryStats.value])
 
 const extraStats = computed(() => result.value.extra || [])
 const effects = computed(() => result.value.effects || [])
@@ -148,8 +167,22 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
           </q-btn>
         </div>
         <q-btn flat round dense icon="close" color="white" class="hb-close" v-close-popup />
-        <div class="hb-portrait" :style="{ boxShadow: `0 0 22px ${THEME}66` }">
-          <img :src="heroImg || FALLBACK" @error="onErr" />
+        <div class="hb-media">
+          <div class="hb-portrait" :style="{ boxShadow: `0 0 22px ${THEME}66` }">
+            <img :src="mainImg || FALLBACK" @error="onErr" />
+          </div>
+          <div v-if="heroImages.length > 1" class="hb-thumbs">
+            <button
+              v-for="im in heroImages"
+              :key="im.label"
+              class="hb-thumb"
+              :class="{ active: (viewImg || heroImg) === im.src }"
+              @click="viewImg = im.src"
+            >
+              <img :src="im.src" @error="onErr" />
+              <q-tooltip>{{ im.label }}</q-tooltip>
+            </button>
+          </div>
         </div>
         <div class="hb-info">
           <div class="hb-name">{{ build.name || 'บิ้วไม่มีชื่อ' }}</div>
@@ -166,32 +199,17 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
 
       <!-- ===== BODY ===== -->
       <q-card-section class="hb-body scroll">
-        <template v-if="set">
-          <div class="hb-title">🛡️ เซตอุปกรณ์</div>
-          <div class="hb-set">
-            <img :src="set.img || FALLBACK" @error="onErr" class="hb-set-img" />
-            <div>
-              <div class="hb-set-name">{{ set.name }}</div>
-              <div v-if="set.setType" class="hb-set-type">{{ set.setType }}</div>
-            </div>
-          </div>
-        </template>
-
         <div class="hb-title">📊 สเตตัสสุทธิ</div>
-        <div class="hb-primary-grid q-mb-sm">
-          <div v-for="st in primaryStats" :key="st.key" class="hb-primary">
-            <div class="hb-ico">{{ st.icon }}</div>
-            <div class="min-w-0">
-              <div class="hb-lbl">{{ st.label }}</div>
-              <div class="hb-val">{{ st.value }}{{ st.pct ? '%' : '' }}</div>
-            </div>
-          </div>
-        </div>
-        <div v-if="secondaryStats.length" class="hb-mini-grid q-mb-sm">
-          <div v-for="st in secondaryStats" :key="st.key" class="hb-mini">
-            <span>{{ st.icon }}</span>
-            <span class="hb-mini-lbl">{{ st.label }}</span>
-            <span class="hb-mini-val">{{ st.value }}{{ st.pct ? '%' : '' }}</span>
+        <div class="hb-stat-table q-mb-sm">
+          <div
+            v-for="(st, i) in allStats"
+            :key="st.key"
+            class="hb-stat-cell"
+            :class="{ primary: i < primaryStats.length }"
+          >
+            <span class="hb-stat-ico">{{ st.icon }}</span>
+            <span class="hb-stat-lbl">{{ st.label }}</span>
+            <span class="hb-stat-val">{{ st.value }}{{ st.pct ? '%' : '' }}</span>
           </div>
         </div>
         <div v-if="extraStats.length || effects.length" class="row q-gutter-xs q-mb-sm">
@@ -200,13 +218,16 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
           <q-badge v-for="(ef, i) in effects" :key="'e' + i" color="purple-6" :label="`⚡ ${ef.stat}`" />
         </div>
 
-        <template v-if="relics.length">
+        <template v-if="relics.length || heroAcc">
           <div class="hb-title">💎 ของรัก / อุปกรณ์เฉพาะ</div>
-          <div class="hb-relic-grid q-mb-sm">
-            <div v-for="(r, i) in relics" :key="i" class="hb-relic" :style="{ borderColor: r.color + '77' }">
-              <span class="hb-relic-dot" :style="{ background: r.color }" />
-              <span class="hb-relic-lbl">{{ r.label }}</span>
-              <span class="hb-relic-val" :style="{ color: r.color }">+{{ r.value }}</span>
+          <div class="hb-relic-wrap q-mb-sm">
+            <img v-if="heroAcc" :src="heroAcc" @error="onErr" class="hb-acc-img" />
+            <div v-if="relics.length" class="hb-relic-grid col">
+              <div v-for="(r, i) in relics" :key="i" class="hb-relic" :style="{ borderColor: r.color + '77' }">
+                <span class="hb-relic-dot" :style="{ background: r.color }" />
+                <span class="hb-relic-lbl">{{ r.label }}</span>
+                <span class="hb-relic-val" :style="{ color: r.color }">+{{ r.value }}</span>
+              </div>
             </div>
           </div>
         </template>
@@ -266,6 +287,7 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
 }
 .hb-close { position: absolute; top: 6px; right: 6px; z-index: 2; }
 .hb-actions { position: absolute; top: 10px; right: 48px; z-index: 2; display: flex; gap: 8px; }
+.hb-media { display: flex; flex-direction: column; gap: 8px; align-items: center; flex-shrink: 0; }
 .hb-portrait {
   width: 120px;
   height: 120px;
@@ -276,6 +298,15 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
   flex-shrink: 0;
 }
 .hb-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hb-thumbs { display: flex; gap: 6px; }
+.hb-thumb {
+  width: 34px; height: 34px; padding: 0; border-radius: 7px; overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.25); background: #000; cursor: pointer;
+  transition: transform 0.1s ease;
+}
+.hb-thumb:hover { transform: translateY(-2px); }
+.hb-thumb.active { border-color: #60a5fa; }
+.hb-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .hb-info { flex: 1; min-width: 0; padding-right: 28px; }
 .hb-name { font-size: 1.35rem; font-weight: 800; color: #fff; line-height: 1.2; word-break: break-word; }
 .hb-hero { font-size: 0.9rem; color: #93c5fd; margin-top: 2px; }
@@ -290,34 +321,31 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
   margin: 16px 0 8px;
 }
 .hb-title:first-child { margin-top: 0; }
-.hb-set { display: flex; align-items: center; gap: 12px; }
-.hb-set-img {
-  width: 52px; height: 52px; border-radius: 10px; object-fit: cover;
-  background: #000; border: 1px solid #2a3441;
+/* ตารางสเตตัส 2 คอลัมน์ */
+.hb-stat-table {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid #262d38;
+  border-radius: 10px;
+  overflow: hidden;
 }
-.hb-set-name { font-weight: 700; color: #e2e8f0; }
-.hb-set-type { font-size: 0.75rem; color: #22d3ee; }
-.hb-primary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-.hb-primary {
-  display: flex; align-items: center; gap: 12px;
-  background: linear-gradient(135deg, #1a2130 0%, #12161f 100%);
-  border: 1px solid #3b82f655; border-radius: 12px; padding: 10px 14px;
-}
-.hb-ico {
-  font-size: 1.3rem; width: 40px; height: 40px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 11px; background: #3b82f622;
-}
-.hb-lbl { font-size: 0.72rem; color: #94a3b8; white-space: nowrap; }
-.hb-val { font-size: 1.15rem; font-weight: 800; color: #f1f5f9; line-height: 1.15; }
-.hb-mini-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
-.hb-mini {
+.hb-stat-cell {
   display: flex; align-items: center; gap: 8px;
-  background: #161b22; border: 1px solid #262d38; border-radius: 9px; padding: 7px 11px;
+  padding: 9px 12px;
+  border-bottom: 1px solid #1c2430;
 }
-.hb-mini-lbl { flex: 1; font-size: 0.78rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hb-mini-val { font-weight: 800; color: #e2e8f0; font-size: 0.88rem; }
-@media (min-width: 480px) { .hb-mini-grid { grid-template-columns: repeat(3, 1fr); } }
+.hb-stat-cell:nth-child(odd) { border-right: 1px solid #1c2430; }
+.hb-stat-cell.primary { background: #12203a; }
+.hb-stat-ico { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+.hb-stat-lbl { flex: 1; font-size: 0.82rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hb-stat-val { font-weight: 800; color: #f1f5f9; font-size: 0.9rem; white-space: nowrap; }
+
+/* ของรัก: รูป + relic stats */
+.hb-relic-wrap { display: flex; gap: 12px; align-items: flex-start; }
+.hb-acc-img {
+  width: 88px; height: 88px; border-radius: 12px; object-fit: cover;
+  background: #000; border: 2px solid #7c3aed77; flex-shrink: 0;
+}
 .hb-relic-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .hb-relic {
   display: flex; align-items: center; gap: 8px;
