@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { useDataStore } from '@/stores/dataStore'
 import { STAT_META } from '@/config/stats'
@@ -70,21 +70,7 @@ const heroImg = computed(() => {
   return data.value.awakened && h.img2 ? h.img2 : h.img
 })
 
-// รูปทั้งหมดที่มีของตัวละคร (ปกติ / ตื่นรู้ / ของรัก) — กดสลับรูปหลักได้
-const heroImages = computed(() => {
-  const h = hero.value
-  if (!h) return []
-  return [
-    { label: 'ปกติ', src: h.img },
-    { label: 'ตื่นรู้', src: h.img2 },
-    { label: 'ของรัก', src: h.accImg },
-  ].filter((x) => x.src && String(x.src).trim())
-})
 const heroAcc = computed(() => hero.value?.accImg || '')
-
-const viewImg = ref(null)
-watch(() => props.build, () => { viewImg.value = null })
-const mainImg = computed(() => viewImg.value || heroImg.value)
 
 const PRIMARY = ['hp', 'atk', 'def', 'spd']
 const SECONDARY = ['critRate', 'critDmg', 'weakness', 'acc', 'block', 'resist', 'dmgRed']
@@ -185,15 +171,6 @@ const relics = computed(() =>
   }).filter(Boolean),
 )
 
-// สกิลทั้งหมด (มีรูป) + ไฮไลต์ตัวที่อัป
-const skillCells = computed(() => {
-  const h = hero.value
-  if (!h) return []
-  const su = data.value.skillUp || {}
-  return [['n', 'ปกติ'], ['s1', 'สกิล 1'], ['s2', 'สกิล 2'], ['p', 'พาสซีฟ'], ['aw', 'ปลุกพลัง']]
-    .filter(([k]) => k !== 'aw' || data.value.awakened)
-    .map(([k, label]) => ({ k, label, img: h.skillData?.[k]?.img || '', up: !!su[k] }))
-})
 
 function pieceImg(idx) {
   const s = set.value
@@ -243,22 +220,8 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
           </q-btn>
         </div>
         <q-btn flat round dense icon="close" color="white" class="hb-close" v-close-popup />
-        <div class="hb-media">
-          <div class="hb-portrait" :style="{ boxShadow: `0 0 22px ${THEME}66` }">
-            <img :src="mainImg || FALLBACK" @error="onErr" />
-          </div>
-          <div v-if="heroImages.length > 1" class="hb-thumbs">
-            <button
-              v-for="im in heroImages"
-              :key="im.label"
-              class="hb-thumb"
-              :class="{ active: (viewImg || heroImg) === im.src }"
-              @click="viewImg = im.src"
-            >
-              <img :src="im.src" @error="onErr" />
-              <q-tooltip>{{ im.label }}</q-tooltip>
-            </button>
-          </div>
+        <div class="hb-portrait" :style="{ boxShadow: `0 0 22px ${THEME}66` }">
+          <img :src="heroImg || FALLBACK" @error="onErr" />
         </div>
         <div class="hb-info">
           <div class="hb-name">{{ build.name || 'บิ้วไม่มีชื่อ' }}</div>
@@ -312,19 +275,6 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
           </div>
         </template>
 
-        <template v-if="skillCells.length">
-          <div class="hb-title">⚡ สกิล <span class="hb-skill-hint">(เขียว = อัป)</span></div>
-          <div class="hb-skill-grid q-mb-sm">
-            <div v-for="s in skillCells" :key="s.k" class="hb-skill-cell">
-              <div class="hb-skill-img" :class="{ up: s.up }">
-                <img v-if="s.img" :src="s.img" @error="onErr" />
-                <span v-else class="hb-skill-txt">{{ s.label }}</span>
-                <q-icon v-if="s.up" name="arrow_upward" class="hb-skill-up" />
-              </div>
-              <span class="hb-skill-lbl" :class="{ up: s.up }">{{ s.label }}</span>
-            </div>
-          </div>
-        </template>
 
         <div class="hb-title">🧩 อุปกรณ์ 4 ชิ้น</div>
         <div class="hb-piece-grid">
