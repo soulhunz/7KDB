@@ -8,6 +8,7 @@ import {
   BUILD_FRONT_MAIN, BUILD_BACK_MAIN, BUILD_SUB_DEF,
 } from '@/config/heroBuild'
 import { renderBuildCanvas, downloadCanvas, shareCanvas } from '@/utils/buildImage'
+import BuildStars from '@/components/BuildStars.vue'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -227,9 +228,10 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
           <div class="hb-name">{{ build.name || 'บิ้วไม่มีชื่อ' }}</div>
           <div class="hb-hero">{{ hero ? hero.name : '— ไม่พบตัวละคร —' }}</div>
           <div class="hb-owner">โดย {{ build.owner || 'ไม่ระบุ' }}</div>
-          <div class="row items-center q-gutter-xs q-mt-sm">
-            <q-badge v-if="starsBlue" color="light-blue-6" :label="`⭐ ฟ้า ${starsBlue}`" />
-            <q-badge v-if="starsRed" color="red-6" :label="`⭐ แดง ${starsRed}`" />
+          <div class="q-mt-sm">
+            <BuildStars :blue="starsBlue" :red="starsRed" :awakened="!!data.awakened" :size="20" />
+          </div>
+          <div class="row items-center q-gutter-xs q-mt-xs">
             <q-badge v-if="data.awakened" color="deep-purple-5" label="🌟 ตื่นรู้" />
             <q-badge v-if="hero && hero.attackType" color="teal" :label="hero.attackType === 'magic' ? 'เวท' : 'กายภาพ'" />
           </div>
