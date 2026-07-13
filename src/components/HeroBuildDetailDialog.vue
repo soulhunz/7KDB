@@ -229,11 +229,10 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
           <div class="hb-hero">{{ hero ? hero.name : '— ไม่พบตัวละคร —' }}</div>
           <div class="hb-owner">โดย {{ build.owner || 'ไม่ระบุ' }}</div>
           <div class="q-mt-sm">
-            <BuildStars :blue="starsBlue" :red="starsRed" :awakened="!!data.awakened" :size="20" />
+            <BuildStars :blue="starsBlue" :red="starsRed" :awakened="!!data.awakened" :size="20" :show-level="false" />
           </div>
-          <div class="row items-center q-gutter-xs q-mt-xs">
-            <q-badge v-if="data.awakened" color="deep-purple-5" label="🌟 ตื่นรู้" />
-            <q-badge v-if="hero && hero.attackType" color="teal" :label="hero.attackType === 'magic' ? 'เวท' : 'กายภาพ'" />
+          <div v-if="data.awakened" class="q-mt-xs">
+            <q-badge color="deep-purple-5" label="🌟 ตื่นรู้" />
           </div>
         </div>
       </div>
