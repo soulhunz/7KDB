@@ -221,13 +221,13 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
           </q-btn>
         </div>
         <q-btn flat round dense icon="close" color="white" class="hb-close" v-close-popup />
+        <div class="hb-owner-corner">โดย {{ build.owner || 'ไม่ระบุ' }}</div>
         <div class="hb-portrait" :style="{ boxShadow: `0 0 22px ${THEME}66` }">
           <img :src="heroImg || FALLBACK" @error="onErr" />
         </div>
         <div class="hb-info">
           <div class="hb-name">{{ build.name || 'บิ้วไม่มีชื่อ' }}</div>
           <div class="hb-hero">{{ hero ? hero.name : '— ไม่พบตัวละคร —' }}</div>
-          <div class="hb-owner">โดย {{ build.owner || 'ไม่ระบุ' }}</div>
           <div class="q-mt-sm">
             <BuildStars :blue="starsBlue" :red="starsRed" :awakened="!!data.awakened" :size="20" :show-level="false" />
           </div>
@@ -324,6 +324,19 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
   background: linear-gradient(135deg, #1e3a5f 0%, #0f1420 100%);
 }
 .hb-close { position: absolute; top: 6px; right: 6px; z-index: 2; }
+.hb-owner-corner {
+  position: absolute;
+  top: 44px;
+  right: 14px;
+  z-index: 2;
+  max-width: 45%;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .hb-actions { position: absolute; top: 10px; right: 48px; z-index: 2; display: flex; gap: 8px; }
 .hb-media { display: flex; flex-direction: column; gap: 8px; align-items: center; flex-shrink: 0; }
 .hb-portrait {
@@ -348,7 +361,6 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
 .hb-info { flex: 1; min-width: 0; padding-right: 28px; }
 .hb-name { font-size: 1.35rem; font-weight: 800; color: #fff; line-height: 1.2; word-break: break-word; }
 .hb-hero { font-size: 0.9rem; color: #93c5fd; margin-top: 2px; }
-.hb-owner { font-size: 0.75rem; color: #94a3b8; margin-top: 2px; }
 .hb-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 16px 18px 22px; }
 .hb-title {
   font-size: 0.85rem;
