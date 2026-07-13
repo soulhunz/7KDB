@@ -221,7 +221,10 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
           </q-btn>
         </div>
         <q-btn flat round dense icon="close" color="white" class="hb-close" v-close-popup />
-        <div class="hb-owner-corner">โดย {{ build.owner || 'ไม่ระบุ' }}</div>
+        <div class="hb-owner-corner">
+          <q-icon name="person" size="14px" class="q-mr-xs" />
+          <span class="ellipsis">{{ build.owner || 'ไม่ระบุ' }}</span>
+        </div>
         <div class="hb-portrait" :style="{ boxShadow: `0 0 22px ${THEME}66` }">
           <img :src="heroImg || FALLBACK" @error="onErr" />
         </div>
@@ -326,17 +329,23 @@ const starsRed = computed(() => parseInt(data.value.redStars) || 0)
 .hb-close { position: absolute; top: 6px; right: 6px; z-index: 2; }
 .hb-owner-corner {
   position: absolute;
-  top: 44px;
+  top: 46px;
   right: 14px;
   z-index: 2;
-  max-width: 45%;
+  max-width: 55%;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: rgba(15, 20, 32, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(4px);
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.8);
-  text-align: right;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
+.hb-owner-corner .q-icon { color: #93c5fd; }
 .hb-actions { position: absolute; top: 10px; right: 48px; z-index: 2; display: flex; gap: 8px; }
 .hb-media { display: flex; flex-direction: column; gap: 8px; align-items: center; flex-shrink: 0; }
 .hb-portrait {
