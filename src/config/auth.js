@@ -9,11 +9,12 @@
 //      https://your-domain.com  (production)
 // 4) คัดลอก Client ID (…apps.googleusercontent.com) มาใส่ที่นี่ หรือใส่ในไฟล์ .env: VITE_GOOGLE_CLIENT_ID=...
 export const GOOGLE_CLIENT_ID =
-  import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
+  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+  '283694564248-l7dnvfnelos7vl1utre3cfmfsjspi7ao.apps.googleusercontent.com'
 
 // รายชื่ออีเมลที่เป็น Premium (ชั่วคราว — ภายหลังย้ายไปเช็คจาก backend)
 // ใครอยู่ในนี้จะแชร์บิ้วขึ้นรายการได้
 export const PREMIUM_EMAILS = []
 
 // อีเมลแอดมิน (ถือเป็น premium + เห็นปุ่ม admin)
-export const ADMIN_EMAILS = []
+export const ADMIN_EMAILS = ['metrorefire@gmail.com']
