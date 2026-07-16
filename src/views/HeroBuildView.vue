@@ -2,13 +2,25 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useDataStore } from '@/stores/dataStore'
+import { useAuthStore } from '@/stores/authStore'
 import HeroBuildEditor from '@/components/HeroBuildEditor.vue'
 import HeroBuildShareDialog from '@/components/HeroBuildShareDialog.vue'
 import HeroBuildDetailDialog from '@/components/HeroBuildDetailDialog.vue'
+import LoginDialog from '@/components/LoginDialog.vue'
 import { defaultBuild, normalizeBuildData, decodeBuild } from '@/config/heroBuild'
 
 const store = useDataStore()
+const auth = useAuthStore()
 const $q = useQuasar()
+
+// ต้อง login (สมาชิก premium) จึงจะสร้าง/แก้บิ้วได้
+const showLogin = ref(false)
+function requireLogin() {
+  if (auth.isLoggedIn) return true
+  $q.notify({ type: 'warning', message: '🔒 ต้องเข้าสู่ระบบ (สมาชิก) เพื่อสร้าง/แก้ไขบิ้ว', timeout: 2500 })
+  showLogin.value = true
+  return false
+}
 
 const LS_KEY = '7kdb_hero_build'
 const FALLBACK = 'https://placehold.co/64x64/0d1117/475569?text=%3F'
@@ -67,8 +79,9 @@ function openDetail(build) {
   showDetail.value = true
 }
 
-// ---- สร้าง / แก้บิ้วของฉัน ----
+// ---- สร้าง / แก้บิ้วของฉัน (ต้อง login) ----
 function newBuild() {
+  if (!requireLogin()) return
   mode.value = 'editor'
 }
 function backToList() { mode.value = 'list' }
@@ -100,16 +113,20 @@ function openLoad() {
   showShare.value = true
 }
 function onLoadCode(data) {
+  if (!requireLogin()) return
   replaceBuild(data)
   mode.value = 'editor'
   const h = store.heroes.find((x) => String(x.id) === String(editorBuild.heroId))
   $q.notify({ type: 'positive', message: '✅ โหลดบิ้วสำเร็จ' + (h ? ': ' + h.name : (editorBuild.heroId ? ' (⚠️ ไม่พบตัวละครในฐานข้อมูล)' : '')) })
 }
 
-async function onPublish({ name, owner }) {
+async function onPublish({ name }) {
+  if (!requireLogin()) return
   if (!editorBuild.heroId) { $q.notify({ type: 'warning', message: 'เลือกตัวละครก่อน' }); return }
   publishing.value = true
   const data = JSON.parse(JSON.stringify(editorBuild))
+  // owner = ผู้ใช้ที่ login เสมอ
+  const owner = auth.displayName
   const oid = (owner || '').replace(/\W/g, '').slice(0, 6) || 'x'
   const rand = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6)
   const record = { id: 'build_' + Date.now() + '_' + oid + '_' + rand, name, owner, heroId: editorBuild.heroId, data, ts: Date.now() }
@@ -133,6 +150,7 @@ onMounted(() => {
     if (!code) return
     const res = decodeBuild(code)
     if (res.ok && res.data) {
+      if (!requireLogin()) return
       replaceBuild(res.data)
       mode.value = 'editor'
       $q.notify({ type: 'positive', message: '🔗 เปิดบิ้วจากลิงก์แล้ว' })
@@ -217,11 +235,13 @@ onMounted(() => {
       :mode="shareMode"
       :build="editorBuild"
       :default-name="defaultName"
+      :owner="auth.displayName"
       :publishing="publishing"
       @publish="onPublish"
       @load="onLoadCode"
     />
     <HeroBuildDetailDialog v-model="showDetail" :build="selectedBuild" />
+    <LoginDialog v-model="showLogin" />
   </q-page>
 </template>
 

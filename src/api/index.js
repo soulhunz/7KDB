@@ -31,4 +31,7 @@ export const api = {
   // ⚡ incremental — ไม่ผ่าน snapshot (เป็น delta อยู่แล้ว)
   getUpdates: (versions) => backend.getUpdates(versions),
   getVersions: () => backend.getVersions(),
+
+  // auth
+  login: (username, password) => backend.login(username, password),
 }

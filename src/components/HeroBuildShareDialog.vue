@@ -10,6 +10,7 @@ const props = defineProps({
   mode: { type: String, default: 'save' }, // 'save' | 'load'
   build: { type: Object, default: null }, // build.data ปัจจุบัน (สำหรับ encode ตอน save)
   defaultName: { type: String, default: '' },
+  owner: { type: String, default: '' }, // ผู้สร้าง = ผู้ใช้ที่ login (ล็อกไว้)
   publishing: { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:modelValue', 'publish', 'load'])
@@ -46,6 +47,7 @@ watch(
     if (props.mode === 'save') {
       code.value = encodeBuild(props.build || {})
       if (!name.value.trim()) name.value = props.defaultName || ''
+      owner.value = props.owner || ''
     } else {
       code.value = ''
     }
@@ -122,7 +124,9 @@ function doLoad() {
             ตั้งชื่อแล้วกด 🌍 เผยแพร่ (ให้คนอื่นเห็นในรายการ) หรือคัดลอกโค้ด/ลิงก์ส่งเอง
           </div>
           <q-input v-model="name" dense outlined dark label="ชื่อบิ้ว" class="q-mb-sm" maxlength="60" counter />
-          <q-input v-model="owner" dense outlined dark label="ชื่อผู้สร้าง (ไม่บังคับ)" class="q-mb-sm" maxlength="30" />
+          <q-input v-model="owner" dense outlined dark readonly label="ผู้สร้าง (จากบัญชีที่เข้าสู่ระบบ)" class="q-mb-sm">
+            <template #prepend><q-icon name="person" /></template>
+          </q-input>
           <q-input v-model="code" type="textarea" rows="3" dense outlined dark readonly label="โค้ดบิ้ว" class="hb-code q-mb-sm" />
           <div class="row q-gutter-sm">
             <q-btn

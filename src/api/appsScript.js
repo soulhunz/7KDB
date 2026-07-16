@@ -39,6 +39,9 @@ export const appsScriptApi = {
   // เวอร์ชันปัจจุบันของทุก category (เล็กมาก) — ไว้ seed baseline
   getVersions: () => post({ action: 'getVersions' }).then((r) => r.versions || {}),
 
+  // เข้าสู่ระบบ — ตรวจ username/password ที่ Users sheet, คืน { status, user }
+  login: (username, password) => post({ action: 'login', username, password }),
+
   // บันทึก/ลบ รายการเดียว (category = 'heroes' | 'pets' | 'rings' | ...)
   saveOneItem: (category, item) => post({ action: 'saveOneItem', category, item }),
   deleteOneItem: (category, id) => post({ action: 'deleteOneItem', category, id }),
