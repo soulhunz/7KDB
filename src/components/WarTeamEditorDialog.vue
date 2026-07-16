@@ -4,10 +4,12 @@ import { useQuasar } from 'quasar'
 import { useDataStore } from '@/stores/dataStore'
 import { useAuthStore } from '@/stores/authStore'
 import HeroBuildPickerDialog from '@/components/HeroBuildPickerDialog.vue'
+import SkillQueueEditor from '@/components/SkillQueueEditor.vue'
+import { FORMATIONS } from '@/config/warTeam'
 
 const props = defineProps({
   modelValue: Boolean,
-  team: { type: Object, default: null }, // null = สร้างใหม่
+  team: { type: Object, default: null },
 })
 const emit = defineEmits(['update:modelValue', 'save'])
 const show = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) })
@@ -18,20 +20,23 @@ const auth = useAuthStore()
 const FALLBACK = 'https://placehold.co/80x80/0d1117/475569?text=%2B'
 
 const blank = () => ({
-  id: '', name: '', type: 'attack', heroes: ['', '', '', '', ''], pet: '', note: '',
+  id: '', name: '', type: 'attack', formation: 'basic',
+  heroes: ['', '', ''], pet: '', skillQueue: [], skillQueueAlts: [], note: '',
   visibility: 'public', allowedEmails: [], editorEmails: [],
 })
 const form = ref(blank())
 
-function normHeroes(h) {
+function norm3(h) {
   const a = Array.isArray(h) ? h.map((x) => String(x || '')) : []
-  while (a.length < 5) a.push('')
-  return a.slice(0, 5)
+  while (a.length < 3) a.push('')
+  return a.slice(0, 3)
 }
 watch(show, (v) => {
   if (!v) return
   form.value = props.team
-    ? { ...blank(), ...JSON.parse(JSON.stringify(props.team)), heroes: normHeroes(props.team.heroes),
+    ? { ...blank(), ...JSON.parse(JSON.stringify(props.team)),
+        heroes: norm3(props.team.heroes),
+        skillQueue: props.team.skillQueue || [], skillQueueAlts: props.team.skillQueueAlts || [],
         allowedEmails: props.team.allowedEmails || [], editorEmails: props.team.editorEmails || [] }
     : blank()
 })
@@ -47,7 +52,7 @@ const petById = computed(() => {
   return m
 })
 
-// ---- picker ----
+// picker
 const showPicker = ref(false)
 const pickerMode = ref('hero')
 const pickTarget = ref(null)
@@ -58,19 +63,19 @@ function onPick(id) {
   else if (typeof pickTarget.value === 'number') form.value.heroes[pickTarget.value] = String(id || '')
 }
 
-// เจ้าของ (หรือทีมใหม่) เท่านั้นที่ตั้งค่าแชร์ได้ + ต้อง premium
 const isOwnerOrNew = computed(() => !props.team || props.team.isOwner)
 const canShareSettings = computed(() => auth.isPremium && isOwnerOrNew.value)
+const canAltPlans = computed(() => auth.isPremium) // แผนสำรอง = Premium
+
+// แผนสกิลสำรอง (Premium)
+function addAlt() {
+  form.value.skillQueueAlts.push({ name: 'แผน ' + String.fromCharCode(66 + form.value.skillQueueAlts.length), queue: [] })
+}
+function removeAlt(i) { form.value.skillQueueAlts.splice(i, 1) }
 
 function save() {
-  if (!form.value.name.trim()) {
-    $q.notify({ type: 'warning', message: 'ตั้งชื่อทีมก่อน' })
-    return
-  }
-  if (!form.value.heroes.some((h) => h)) {
-    $q.notify({ type: 'warning', message: 'เลือกฮีโร่อย่างน้อย 1 ตัว' })
-    return
-  }
+  if (!form.value.name.trim()) { $q.notify({ type: 'warning', message: 'ตั้งชื่อทีมก่อน' }); return }
+  if (!form.value.heroes.some((h) => h)) { $q.notify({ type: 'warning', message: 'เลือกฮีโร่อย่างน้อย 1 ตัว' }); return }
   emit('save', JSON.parse(JSON.stringify(form.value)))
 }
 </script>
@@ -87,74 +92,80 @@ function save() {
       <q-card-section class="wt-body scroll q-gutter-md">
         <q-input v-model="form.name" dense outlined dark label="ชื่อทีม" maxlength="60" autofocus />
 
-        <q-btn-toggle
-          v-model="form.type"
-          spread no-caps unelevated
-          toggle-color="primary" color="grey-9" text-color="grey-5"
-          :options="[
-            { label: '⚔️ ทีมบุก', value: 'attack' },
-            { label: '🛡️ ทีมรับ', value: 'defense' },
-          ]"
-        />
+        <div class="row q-col-gutter-sm">
+          <div class="col-12 col-sm-6">
+            <q-btn-toggle v-model="form.type" spread no-caps unelevated
+              toggle-color="primary" color="grey-9" text-color="grey-5"
+              :options="[{ label: '⚔️ ทีมบุก', value: 'attack' }, { label: '🛡️ ทีมรับ', value: 'defense' }]" />
+          </div>
+          <div class="col-12 col-sm-6">
+            <q-select v-model="form.formation" :options="FORMATIONS" option-value="id" option-label="name"
+              emit-value map-options dense outlined dark label="Formation" />
+          </div>
+        </div>
 
         <div>
-          <div class="text-caption text-grey-5 q-mb-xs">ฮีโร่ (5 ช่อง)</div>
+          <div class="text-caption text-grey-5 q-mb-xs">ฮีโร่ (3 ตัว)</div>
           <div class="wt-slots">
             <div v-for="(h, i) in form.heroes" :key="i" class="wt-slot" @click="openHero(i)">
               <img v-if="heroById[h]" :src="heroById[h].img" @error="(e) => (e.target.src = FALLBACK)" />
-              <q-icon v-else name="add" size="20px" color="grey-6" />
+              <q-icon v-else name="add" size="22px" color="grey-6" />
             </div>
-          </div>
-        </div>
-
-        <div class="row items-center q-gutter-md">
-          <div>
-            <div class="text-caption text-grey-5 q-mb-xs">เพ็ท</div>
             <div class="wt-slot wt-pet" @click="openPet">
               <img v-if="petById[form.pet]" :src="petById[form.pet].img" @error="(e) => (e.target.src = FALLBACK)" />
-              <q-icon v-else name="add" size="20px" color="grey-6" />
+              <template v-else><q-icon name="pets" size="18px" color="grey-6" /></template>
             </div>
           </div>
-          <q-input v-model="form.note" class="col" dense outlined dark type="textarea" rows="2" label="โน้ต (ไม่บังคับ)" />
+          <div class="text-caption text-grey-7">3 ช่องแรก = ฮีโร่ · ช่องเขียว = เพ็ท</div>
         </div>
 
-        <!-- ตั้งค่าแชร์ (Premium เท่านั้น) -->
+        <div>
+          <div class="text-caption text-grey-5 q-mb-xs">🎯 ลำดับสกิล (คิว)</div>
+          <SkillQueueEditor v-model="form.skillQueue" :heroes="form.heroes" :max="6" />
+        </div>
+
+        <!-- แผนสำรอง (Premium) -->
+        <div>
+          <div class="row items-center q-mb-xs">
+            <div class="text-caption text-grey-5">🗂️ แผนสกิลสำรอง</div>
+            <q-space />
+            <q-badge v-if="!canAltPlans" color="amber-8" label="Premium" />
+            <q-btn v-else flat dense no-caps size="sm" icon="add" label="เพิ่มแผน" color="primary" @click="addAlt" />
+          </div>
+          <template v-if="canAltPlans">
+            <div v-for="(alt, i) in form.skillQueueAlts" :key="i" class="wt-alt">
+              <div class="row items-center q-mb-xs">
+                <q-input v-model="alt.name" dense borderless dark class="col" input-class="text-weight-bold" />
+                <q-btn flat dense round size="sm" icon="delete" color="red-4" @click="removeAlt(i)" />
+              </div>
+              <SkillQueueEditor v-model="alt.queue" :heroes="form.heroes" :max="6" />
+            </div>
+          </template>
+        </div>
+
+        <q-input v-model="form.note" dense outlined dark type="textarea" rows="2" label="โน้ต (ไม่บังคับ)" />
+
+        <!-- การแชร์ -->
         <q-separator dark />
         <div>
           <div class="row items-center q-mb-xs">
             <div class="text-subtitle2">🔗 การแชร์</div>
             <q-space />
-            <q-badge v-if="!canShareSettings" color="amber-8" label="ตั้งค่าเจาะจง = Premium" />
+            <q-badge v-if="!canShareSettings" color="amber-8" label="แชร์เจาะจง = Premium" />
           </div>
-
           <q-option-group
-            v-model="form.visibility"
-            :disable="!canShareSettings"
+            v-model="form.visibility" :disable="!canShareSettings"
             :options="[
               { label: '🌍 ทุกคนเห็น (Public)', value: 'public' },
               { label: '🔒 เฉพาะอีเมลที่กำหนด', value: 'restricted' },
-            ]"
-            color="primary"
-            dense
+            ]" color="primary" dense
           />
-
-          <template v-if="canShareSettings && form.visibility === 'restricted'">
-            <q-select
-              v-model="form.allowedEmails"
-              dense outlined dark use-input use-chips multiple hide-dropdown-icon
-              new-value-mode="add-unique" label="อีเมลที่ให้ดู (Enter เพื่อเพิ่ม)"
-              class="q-mt-sm"
-            />
-          </template>
-
-          <template v-if="canShareSettings">
-            <q-select
-              v-model="form.editorEmails"
-              dense outlined dark use-input use-chips multiple hide-dropdown-icon
-              new-value-mode="add-unique" label="อีเมลที่ให้แก้ไขได้ (Enter เพื่อเพิ่ม)"
-              class="q-mt-sm"
-            />
-          </template>
+          <q-select v-if="canShareSettings && form.visibility === 'restricted'"
+            v-model="form.allowedEmails" dense outlined dark use-input use-chips multiple hide-dropdown-icon
+            new-value-mode="add-unique" label="อีเมลที่ให้ดู (Enter เพื่อเพิ่ม)" class="q-mt-sm" />
+          <q-select v-if="canShareSettings"
+            v-model="form.editorEmails" dense outlined dark use-input use-chips multiple hide-dropdown-icon
+            new-value-mode="add-unique" label="อีเมลที่ให้แก้ไขได้ (Enter เพื่อเพิ่ม)" class="q-mt-sm" />
         </div>
       </q-card-section>
 
@@ -169,7 +180,7 @@ function save() {
 </template>
 
 <style scoped>
-.wt-card { width: 92vw; max-width: 520px; background: #0f1420; border-radius: 16px; display: flex; flex-direction: column; max-height: 88vh; }
+.wt-card { width: 92vw; max-width: 560px; background: #0f1420; border-radius: 16px; display: flex; flex-direction: column; max-height: 90vh; }
 .wt-body { overflow-y: auto; }
 .wt-slots { display: flex; gap: 8px; flex-wrap: wrap; }
 .wt-slot {
@@ -180,4 +191,5 @@ function save() {
 .wt-slot:hover { border-color: #3b82f6; }
 .wt-slot img { width: 100%; height: 100%; object-fit: cover; }
 .wt-pet { border-color: #22c55e55; }
+.wt-alt { background: #12161f; border: 1px solid #262d38; border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; }
 </style>

@@ -10,7 +10,7 @@ export const NAV_GROUPS = [
     title: 'เมนูหลัก',
     items: [
       { path: '/hero-build', name: 'hero-build', icon: '🔨', label: 'บิ้วตัวละคร', ready: true },
-      { path: '/battle-war', name: 'battle-war', icon: '⚔️', label: 'ทีมบุก/ทีมรับ', ready: true },
+      { path: '/battle-war', name: 'battle-war', icon: '⚔️', label: 'ทีมวอกิลด์', ready: true },
       { path: '/gallery', name: 'gallery', icon: '🖼️', label: 'แกลเลอรี', ready: true },
     ],
   },

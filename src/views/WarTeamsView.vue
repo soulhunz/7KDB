@@ -6,6 +6,7 @@ import { useDataStore } from '@/stores/dataStore'
 import { useAuthStore } from '@/stores/authStore'
 import WarTeamEditorDialog from '@/components/WarTeamEditorDialog.vue'
 import LoginDialog from '@/components/LoginDialog.vue'
+import { formationName, skillLabel, skillColor } from '@/config/warTeam'
 
 const $q = useQuasar()
 const store = useDataStore()
@@ -88,7 +89,7 @@ function del(t) {
   <q-page class="q-pa-md">
     <div class="row items-center q-mb-sm">
       <div>
-        <div class="text-h5 text-weight-bold">⚔️ ทีมบุก / ทีมรับ</div>
+        <div class="text-h5 text-weight-bold">⚔️ ทีมวอกิลด์</div>
         <div class="text-grey-5">ทีมที่แชร์ {{ teams.length }} · แสดง {{ filtered.length }}</div>
       </div>
       <q-space />
@@ -132,6 +133,22 @@ function del(t) {
               <div v-if="petById[t.pet]" class="wt-mini wt-mini-pet">
                 <img :src="petById[t.pet].img" @error="onErr" :title="petById[t.pet].name" />
               </div>
+              <q-space />
+              <q-badge outline color="blue-grey-4" :label="formationName(t.formation)" />
+            </div>
+
+            <div v-if="t.skillQueue && t.skillQueue.length" class="row items-center q-gutter-xs q-mt-sm">
+              <span class="text-caption text-grey-6">คิว:</span>
+              <template v-for="(step, i) in t.skillQueue" :key="i">
+                <q-avatar rounded size="20px">
+                  <img v-if="heroById[step.hero]" :src="heroById[step.hero].img" @error="onErr" />
+                </q-avatar>
+                <q-badge :color="skillColor(step.skill)" :label="skillLabel(step.skill)" />
+              </template>
+            </div>
+
+            <div v-if="t.skillQueueAlts && t.skillQueueAlts.length" class="text-caption text-amber-4 q-mt-xs">
+              + {{ t.skillQueueAlts.length }} แผนสำรอง
             </div>
             <div v-if="t.note" class="text-caption text-grey-4 q-mt-xs">{{ t.note }}</div>
             <div class="text-caption text-grey-6 q-mt-xs">โดย {{ t.owner || 'ไม่ระบุ' }}</div>

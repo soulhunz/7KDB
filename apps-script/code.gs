@@ -326,7 +326,8 @@ function doPost(e) {
       var wTeams = loadWarTeams_(ss).filter(function (t) { return warCanView_(t, wEmail); }).map(function (t) {
         var owner = warNorm_(t.owner) === wEmail;
         return {
-          id: t.id, name: t.name, type: t.type, heroes: t.heroes, pet: t.pet, note: t.note,
+          id: t.id, name: t.name, type: t.type, formation: t.formation, heroes: t.heroes, pet: t.pet,
+          skillQueue: t.skillQueue, skillQueueAlts: t.skillQueueAlts, note: t.note,
           owner: t.owner, visibility: t.visibility, updatedAt: t.updatedAt,
           canEdit: warCanEdit_(t, wEmail), isOwner: owner,
           // ส่งรายชื่ออีเมลกลับเฉพาะเจ้าของ (ไว้แก้การแชร์)
@@ -1676,7 +1677,7 @@ function checkUserTier_(ss, email) {
 // คอลัมน์: ID | Name | Type | Heroes_JSON | Pet | Note | Owner | Visibility | AllowedEmails | EditorEmails | UpdatedAt
 //   Type: 'attack' | 'defense'  ·  Visibility: 'public' | 'restricted'
 // =========================================================
-var WAR_HEADERS = ['ID', 'Name', 'Type', 'Heroes_JSON', 'Pet', 'Note', 'Owner', 'Visibility', 'AllowedEmails', 'EditorEmails', 'UpdatedAt'];
+var WAR_HEADERS = ['ID', 'Name', 'Type', 'Formation', 'Heroes_JSON', 'Pet', 'SkillQueue_JSON', 'SkillQueueAlts_JSON', 'Note', 'Owner', 'Visibility', 'AllowedEmails', 'EditorEmails', 'UpdatedAt'];
 
 function getWarTeamsSheet_(ss) {
   var s = ss.getSheetByName('WarTeams');
@@ -1692,16 +1693,19 @@ function getWarTeamsSheet_(ss) {
 function warParse_(v, d) { try { return JSON.parse(v || d); } catch (e) { return JSON.parse(d); } }
 function warRowToObj_(r) {
   return {
-    id: String(r[0] || ''), name: r[1] || '', type: r[2] || 'attack',
-    heroes: warParse_(r[3], '[]'), pet: r[4] || '', note: r[5] || '',
-    owner: r[6] || '', visibility: r[7] || 'public',
-    allowedEmails: warParse_(r[8], '[]'), editorEmails: warParse_(r[9], '[]'),
-    updatedAt: parseInt(r[10], 10) || 0,
+    id: String(r[0] || ''), name: r[1] || '', type: r[2] || 'attack', formation: r[3] || 'basic',
+    heroes: warParse_(r[4], '[]'), pet: r[5] || '',
+    skillQueue: warParse_(r[6], '[]'), skillQueueAlts: warParse_(r[7], '[]'), note: r[8] || '',
+    owner: r[9] || '', visibility: r[10] || 'public',
+    allowedEmails: warParse_(r[11], '[]'), editorEmails: warParse_(r[12], '[]'),
+    updatedAt: parseInt(r[13], 10) || 0,
   };
 }
 function warObjToRow_(t) {
-  return [String(t.id), t.name || '', t.type || 'attack', JSON.stringify(t.heroes || []), t.pet || '', t.note || '',
-    t.owner || '', t.visibility || 'public', JSON.stringify(t.allowedEmails || []), JSON.stringify(t.editorEmails || []),
+  return [String(t.id), t.name || '', t.type || 'attack', t.formation || 'basic',
+    JSON.stringify(t.heroes || []), t.pet || '', JSON.stringify(t.skillQueue || []), JSON.stringify(t.skillQueueAlts || []),
+    t.note || '', t.owner || '', t.visibility || 'public',
+    JSON.stringify(t.allowedEmails || []), JSON.stringify(t.editorEmails || []),
     String(t.updatedAt || new Date().getTime())];
 }
 function warNorm_(e) { return String(e || '').trim().toLowerCase(); }
