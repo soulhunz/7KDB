@@ -10,6 +10,7 @@ export const NAV_GROUPS = [
     title: 'เมนูหลัก',
     items: [
       { path: '/hero-build', name: 'hero-build', icon: '🔨', label: 'บิ้วตัวละคร', ready: true },
+      { path: '/battle-war', name: 'battle-war', icon: '⚔️', label: 'ทีมบุก/ทีมรับ', ready: true },
       { path: '/gallery', name: 'gallery', icon: '🖼️', label: 'แกลเลอรี', ready: true },
     ],
   },
@@ -38,7 +39,6 @@ export const DISABLED_GROUPS = [
   {
     title: 'สงคราม & กิลด์',
     items: [
-      { path: '/battle-war', name: 'battle-war', icon: '⚔️', label: 'ทีมบุก/ทีมรับ', ready: true },
       { path: '/battle-history', name: 'battle-history', icon: '📜', label: 'ประวัติการต่อสู้', ready: false },
       { path: '/guild-manager', name: 'guild-manager', icon: '🏰', label: 'กิลด์ & พันธมิตร', ready: true },
       { path: '/survey-admin', name: 'survey-admin', icon: '📝', label: 'ฟอร์มรับสมัคร', ready: false },
