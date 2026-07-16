@@ -10,6 +10,7 @@ const readyViews = {
   'equip-manager': () => import('@/views/EquipManagerView.vue'),
   'skill-lib': () => import('@/views/SkillLibView.vue'),
   'guild-manager': () => import('@/views/GuildManagerView.vue'),
+  'battle-war': () => import('@/views/WarTeamsView.vue'),
 }
 
 // สร้าง routes จาก nav config ทีเดียว — view ที่ยังไม่ทำใช้ PlaceholderView

@@ -45,6 +45,11 @@ export const appsScriptApi = {
   // เช็คระดับสมาชิกจากอีเมล (sheet Premium) → 'premium' | 'vip' | 'free'
   getUserTier: (email) => post({ action: 'getUserTier', email }).then((r) => r.tier || 'free'),
 
+  // ⚔️ ทีมบุก/ทีมรับ (แชร์ + สิทธิ์ตาม email)
+  getWarTeams: (email) => post({ action: 'getWarTeams', email }).then((r) => r.teams || []),
+  saveWarTeam: (team, email) => post({ action: 'saveWarTeam', team, email }),
+  deleteWarTeam: (id, email) => post({ action: 'deleteWarTeam', id, email }),
+
   // บันทึก/ลบ รายการเดียว (category = 'heroes' | 'pets' | 'rings' | ...)
   saveOneItem: (category, item) => post({ action: 'saveOneItem', category, item }),
   deleteOneItem: (category, id) => post({ action: 'deleteOneItem', category, id }),

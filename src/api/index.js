@@ -35,4 +35,9 @@ export const api = {
   // auth
   login: (username, password) => backend.login(username, password),
   getUserTier: (email) => backend.getUserTier(email),
+
+  // war teams
+  getWarTeams: (email) => backend.getWarTeams(email),
+  saveWarTeam: (team, email) => backend.saveWarTeam(team, email),
+  deleteWarTeam: (id, email) => backend.deleteWarTeam(id, email),
 }

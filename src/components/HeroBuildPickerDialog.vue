@@ -17,14 +17,24 @@ watch(() => props.modelValue, (v) => { if (v) search.value = '' })
 const FALLBACK = 'https://placehold.co/80x80/0d1117/475569?text=%3F'
 const onErr = (e) => (e.target.src = FALLBACK)
 
-const title = computed(() => (props.mode === 'hero' ? 'เลือกตัวละคร' : 'เลือกเซตอุปกรณ์'))
-const accent = computed(() => (props.mode === 'hero' ? '#3b82f6' : '#06b6d4'))
+const title = computed(() =>
+  props.mode === 'hero' ? 'เลือกตัวละคร' : props.mode === 'pet' ? 'เลือกสัตว์เลี้ยง' : 'เลือกเซตอุปกรณ์'
+)
+const accent = computed(() =>
+  props.mode === 'hero' ? '#3b82f6' : props.mode === 'pet' ? '#22c55e' : '#06b6d4'
+)
 
 const items = computed(() => {
   const q = search.value.trim().toLowerCase()
   if (props.mode === 'hero') {
     return store.heroes
       .filter((h) => !q || String(h.name || '').toLowerCase().includes(q))
+      .slice()
+      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th'))
+  }
+  if (props.mode === 'pet') {
+    return store.pets
+      .filter((p) => !q || String(p.name || '').toLowerCase().includes(q))
       .slice()
       .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th'))
   }

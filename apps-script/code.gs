@@ -6,7 +6,7 @@ var VIDEO_FOLDER_ID = '1jTnrjTdNLtw9E58TB_sQ5ShELr-6uPrY'; // โฟลเดอ
 var SKILL_FOLDER_ID = '12S_ycyylGP6T3oQVLtwkoRJwUNVmM-33'; // โฟลเดอร์เก็บไอคอน/รูปสกิลของตัวละคร
 var EQUIP_FOLDER_ID = '14Ci7SczLyh1rg071_jMIP03j0DjSu5Ki'; // โฟลเดอร์เก็บรูปอุปกรณ์ (เซ็ตอุปกรณ์)
 var HERO_IMAGE_FOLDER_ID = '1dg4tEQHjhnRd41hqxI2S8oLh-Fv0uR2M'; // โฟลเดอร์เก็บรูปฮีโร่ (Normal/Awakening)
-var SERVER_VERSION = "6.0.0"; // Updated Version
+var SERVER_VERSION = "6.0.1"; // Updated Version
 
 // 1. ส่วนเปิดหน้าเว็บ
 function doGet(e) {
@@ -318,6 +318,66 @@ function doPost(e) {
     // ⭐ เช็คระดับสมาชิก (Premium) จากอีเมล
     else if (action === 'getUserTier') {
       return out({ status: 'success', tier: checkUserTier_(ss, request.email) });
+    }
+
+    // ⚔️ ทีมบุก/ทีมรับ — ดึงเฉพาะที่ผู้ใช้ (email) มีสิทธิ์เห็น
+    else if (action === 'getWarTeams') {
+      var wEmail = warNorm_(request.email);
+      var wTeams = loadWarTeams_(ss).filter(function (t) { return warCanView_(t, wEmail); }).map(function (t) {
+        var owner = warNorm_(t.owner) === wEmail;
+        return {
+          id: t.id, name: t.name, type: t.type, heroes: t.heroes, pet: t.pet, note: t.note,
+          owner: t.owner, visibility: t.visibility, updatedAt: t.updatedAt,
+          canEdit: warCanEdit_(t, wEmail), isOwner: owner,
+          // ส่งรายชื่ออีเมลกลับเฉพาะเจ้าของ (ไว้แก้การแชร์)
+          allowedEmails: owner ? t.allowedEmails : undefined,
+          editorEmails: owner ? t.editorEmails : undefined,
+        };
+      });
+      return out({ status: 'success', teams: wTeams });
+    }
+
+    // ⚔️ สร้าง/แก้ไขทีม — ต้อง login; แก้ของเดิมได้เฉพาะ owner/editor
+    else if (action === 'saveWarTeam') {
+      var svEmail = String(request.email || '').trim();
+      if (!svEmail) return out({ status: 'error', message: 'ต้องเข้าสู่ระบบ' });
+      var t = request.team || {};
+      var wsheet = getWarTeamsSheet_(ss);
+      var all = loadWarTeams_(ss);
+      var idx = -1;
+      for (var wi = 0; wi < all.length; wi++) { if (all[wi].id === String(t.id)) { idx = wi; break; } }
+      if (idx === -1) {
+        t.owner = svEmail;
+        if (!t.id) t.id = 'wt_' + new Date().getTime() + '_' + Math.floor(Math.random() * 1e6);
+        t.updatedAt = new Date().getTime();
+        wsheet.appendRow(warObjToRow_(t));
+      } else {
+        var ex = all[idx];
+        if (!warCanEdit_(ex, svEmail)) return out({ status: 'error', message: 'ไม่มีสิทธิ์แก้ไขทีมนี้' });
+        t.owner = ex.owner; // คงเจ้าของเดิม
+        // แก้การแชร์ได้เฉพาะเจ้าของ — คนอื่น (editor) แก้ได้แค่เนื้อทีม
+        if (warNorm_(ex.owner) !== warNorm_(svEmail)) {
+          t.visibility = ex.visibility; t.allowedEmails = ex.allowedEmails; t.editorEmails = ex.editorEmails;
+        }
+        t.updatedAt = new Date().getTime();
+        wsheet.getRange(idx + 2, 1, 1, WAR_HEADERS.length).setValues([warObjToRow_(t)]);
+      }
+      return out({ status: 'success', team: t });
+    }
+
+    // ⚔️ ลบทีม — เฉพาะเจ้าของ
+    else if (action === 'deleteWarTeam') {
+      var delEmail = warNorm_(request.email);
+      var dsheet = getWarTeamsSheet_(ss);
+      var dall = loadWarTeams_(ss);
+      for (var di = 0; di < dall.length; di++) {
+        if (dall[di].id === String(request.id)) {
+          if (warNorm_(dall[di].owner) !== delEmail) return out({ status: 'error', message: 'ลบได้เฉพาะเจ้าของทีม' });
+          dsheet.deleteRow(di + 2);
+          return out({ status: 'success' });
+        }
+      }
+      return out({ status: 'success' });
     }
 
     // =========================================================
@@ -1609,6 +1669,59 @@ function checkUserTier_(ss, email) {
     Logger.log('checkUserTier_ error: ' + e);
   }
   return 'free';
+}
+
+// =========================================================
+// ⚔️ WAR TEAMS — ทีมบุก/ทีมรับ + ระบบแชร์/สิทธิ์ (sheet "WarTeams")
+// คอลัมน์: ID | Name | Type | Heroes_JSON | Pet | Note | Owner | Visibility | AllowedEmails | EditorEmails | UpdatedAt
+//   Type: 'attack' | 'defense'  ·  Visibility: 'public' | 'restricted'
+// =========================================================
+var WAR_HEADERS = ['ID', 'Name', 'Type', 'Heroes_JSON', 'Pet', 'Note', 'Owner', 'Visibility', 'AllowedEmails', 'EditorEmails', 'UpdatedAt'];
+
+function getWarTeamsSheet_(ss) {
+  var s = ss.getSheetByName('WarTeams');
+  if (!s) {
+    s = ss.insertSheet('WarTeams');
+    s.appendRow(WAR_HEADERS);
+    s.getRange(1, 1, 1, WAR_HEADERS.length).setFontWeight('bold').setBackground('#d9ead3');
+    s.setFrozenRows(1);
+    s.getRange('A:A').setNumberFormat('@');
+  }
+  return s;
+}
+function warParse_(v, d) { try { return JSON.parse(v || d); } catch (e) { return JSON.parse(d); } }
+function warRowToObj_(r) {
+  return {
+    id: String(r[0] || ''), name: r[1] || '', type: r[2] || 'attack',
+    heroes: warParse_(r[3], '[]'), pet: r[4] || '', note: r[5] || '',
+    owner: r[6] || '', visibility: r[7] || 'public',
+    allowedEmails: warParse_(r[8], '[]'), editorEmails: warParse_(r[9], '[]'),
+    updatedAt: parseInt(r[10], 10) || 0,
+  };
+}
+function warObjToRow_(t) {
+  return [String(t.id), t.name || '', t.type || 'attack', JSON.stringify(t.heroes || []), t.pet || '', t.note || '',
+    t.owner || '', t.visibility || 'public', JSON.stringify(t.allowedEmails || []), JSON.stringify(t.editorEmails || []),
+    String(t.updatedAt || new Date().getTime())];
+}
+function warNorm_(e) { return String(e || '').trim().toLowerCase(); }
+function warEmailIn_(list, email) {
+  var e = warNorm_(email); if (!e) return false;
+  return (list || []).some(function (x) { return warNorm_(x) === e; });
+}
+function warCanView_(t, email) {
+  if (t.visibility === 'public' || !t.visibility) return true;
+  var e = warNorm_(email); if (!e) return false;
+  return warNorm_(t.owner) === e || warEmailIn_(t.allowedEmails, e) || warEmailIn_(t.editorEmails, e);
+}
+function warCanEdit_(t, email) {
+  var e = warNorm_(email); if (!e) return false;
+  return warNorm_(t.owner) === e || warEmailIn_(t.editorEmails, e);
+}
+function loadWarTeams_(ss) {
+  var s = getWarTeamsSheet_(ss); var last = s.getLastRow();
+  if (last < 2) return [];
+  return s.getRange(2, 1, last - 1, WAR_HEADERS.length).getValues().map(warRowToObj_);
 }
 
 // โหลดข้อมูลของ category เดียว (จัดการ guilds เป็นกรณีพิเศษ)
