@@ -3,7 +3,10 @@
 // - สิทธิ์ Premium (แชร์บิ้วขึ้นรายการ) เช็คจาก PREMIUM_EMAILS/ADMIN_EMAILS (ชั่วคราว) — ย้ายไป backend ได้ภายหลัง
 // - เก็บ session ใน localStorage เพื่อคง login ข้ามการรีเฟรช
 import { defineStore } from 'pinia'
-import { PREMIUM_EMAILS, ADMIN_EMAILS } from '@/config/auth'
+import { PREMIUM_EMAILS, ADMIN_EMAILS, DEV_TIER_OVERRIDE } from '@/config/auth'
+
+// override เฉพาะตอน dev (build จริงจะไม่มีผล)
+const devOverride = import.meta.env.DEV ? DEV_TIER_OVERRIDE : null
 
 const AUTH_KEY = '7kdb_auth_v2'
 
@@ -32,11 +35,16 @@ export const useAuthStore = defineStore('auth', {
     isLoggedIn: (s) => !!s.user,
     displayName: (s) => (s.user ? s.user.name || s.user.email : ''),
     picture: (s) => s.user?.picture || '',
-    isAdmin: (s) => !!s.user && ADMIN_EMAILS.map(norm).includes(norm(s.user.email)),
+    isAdmin: (s) => {
+      if (!s.user) return false
+      if (devOverride) return false // ตอนทดสอบ override → ซ่อน UI admin
+      return ADMIN_EMAILS.map(norm).includes(norm(s.user.email))
+    },
 
     // ระดับสมาชิก: guest → free → premium (เผื่อ VIP/Premium)
     tier() {
       if (!this.user) return 'guest'
+      if (devOverride) return devOverride // [dev] บังคับระดับเพื่อทดสอบ
       if (this.isAdmin) return 'premium'
       if (PREMIUM_EMAILS.map(norm).includes(norm(this.user.email))) return 'premium'
       return 'free'

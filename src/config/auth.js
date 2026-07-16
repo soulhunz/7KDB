@@ -18,3 +18,10 @@ export const PREMIUM_EMAILS = []
 
 // อีเมลแอดมิน (ถือเป็น premium + เห็นปุ่ม admin)
 export const ADMIN_EMAILS = ['metrorefire@gmail.com']
+
+// [ทดสอบเฉพาะตอน dev เท่านั้น] บังคับระดับผู้ใช้เพื่อลองมุมมอง
+//   'free'    = เป็น user ธรรมดา (ทดสอบระบบสมัคร Premium)
+//   'premium' = พรีเมียม
+//   null      = ใช้ตามอีเมลจริง (ค่าปกติ)
+// ⚠️ มีผลเฉพาะ npm run dev — ตอน build/deploy จะถูกเมิน ไม่กระทบผู้ใช้จริง
+export const DEV_TIER_OVERRIDE = null
