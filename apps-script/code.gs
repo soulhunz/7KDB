@@ -315,6 +315,11 @@ function doPost(e) {
       return out({ status: 'success', versions: computeServerVersions_(ss) });
     }
 
+    // ⭐ เช็คระดับสมาชิก (Premium) จากอีเมล
+    else if (action === 'getUserTier') {
+      return out({ status: 'success', tier: checkUserTier_(ss, request.email) });
+    }
+
     // =========================================================
     // 🎯 SAVE 3V3 TEAMS (Server-Side Guild-Based Merge)
     // =========================================================
@@ -1559,6 +1564,51 @@ function bumpVersion_(ss, category) {
   } catch (e) {
     Logger.log('bumpVersion_ failed for ' + category + ': ' + e);
   }
+}
+
+// =========================================================
+// ⭐ PREMIUM — sheet "Premium" เก็บอีเมลสมาชิก (จัดการในชีตได้เลย ไม่ต้อง build)
+// คอลัมน์: Email | Name | Plan | ExpiresAt | Note
+//   Plan เว้นว่าง = premium ; ExpiresAt เว้นว่าง = ไม่หมดอายุ (ใส่วันที่เพื่อกำหนดหมดอายุ)
+// =========================================================
+function getPremiumSheet_(ss) {
+  var s = ss.getSheetByName('Premium');
+  if (!s) {
+    s = ss.insertSheet('Premium');
+    s.appendRow(['Email', 'Name', 'Plan', 'ExpiresAt', 'Note']);
+    s.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#fff2cc');
+    s.setFrozenRows(1);
+    s.getRange('A:A').setNumberFormat('@');
+  }
+  return s;
+}
+
+// เช็คระดับสมาชิกจากอีเมล → 'premium' | 'vip' | 'free'
+function checkUserTier_(ss, email) {
+  var target = String(email || '').trim().toLowerCase();
+  if (!target) return 'free';
+  try {
+    var s = getPremiumSheet_(ss);
+    var last = s.getLastRow();
+    if (last < 2) return 'free';
+    var vals = s.getRange(2, 1, last - 1, 4).getValues(); // Email, Name, Plan, ExpiresAt
+    var now = new Date().getTime();
+    for (var i = 0; i < vals.length; i++) {
+      var em = String(vals[i][0] || '').trim().toLowerCase();
+      if (em && em === target) {
+        var exp = vals[i][3];
+        if (exp) {
+          var t = (exp instanceof Date) ? exp.getTime() : new Date(exp).getTime();
+          if (!isNaN(t) && t < now) return 'free'; // หมดอายุแล้ว
+        }
+        var plan = String(vals[i][2] || 'premium').trim().toLowerCase();
+        return plan || 'premium';
+      }
+    }
+  } catch (e) {
+    Logger.log('checkUserTier_ error: ' + e);
+  }
+  return 'free';
 }
 
 // โหลดข้อมูลของ category เดียว (จัดการ guilds เป็นกรณีพิเศษ)

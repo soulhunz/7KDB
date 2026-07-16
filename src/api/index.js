@@ -34,4 +34,5 @@ export const api = {
 
   // auth
   login: (username, password) => backend.login(username, password),
+  getUserTier: (email) => backend.getUserTier(email),
 }

@@ -42,6 +42,9 @@ export const appsScriptApi = {
   // เข้าสู่ระบบ — ตรวจ username/password ที่ Users sheet, คืน { status, user }
   login: (username, password) => post({ action: 'login', username, password }),
 
+  // เช็คระดับสมาชิกจากอีเมล (sheet Premium) → 'premium' | 'vip' | 'free'
+  getUserTier: (email) => post({ action: 'getUserTier', email }).then((r) => r.tier || 'free'),
+
   // บันทึก/ลบ รายการเดียว (category = 'heroes' | 'pets' | 'rings' | ...)
   saveOneItem: (category, item) => post({ action: 'saveOneItem', category, item }),
   deleteOneItem: (category, id) => post({ action: 'deleteOneItem', category, id }),

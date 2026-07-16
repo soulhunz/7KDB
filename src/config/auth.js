@@ -24,4 +24,4 @@ export const ADMIN_EMAILS = ['metrorefire@gmail.com']
 //   'premium' = พรีเมียม
 //   null      = ใช้ตามอีเมลจริง (ค่าปกติ)
 // ⚠️ มีผลเฉพาะ npm run dev — ตอน build/deploy จะถูกเมิน ไม่กระทบผู้ใช้จริง
-export const DEV_TIER_OVERRIDE = null
+export const DEV_TIER_OVERRIDE = 'free'
