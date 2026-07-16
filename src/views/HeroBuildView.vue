@@ -7,6 +7,7 @@ import HeroBuildEditor from '@/components/HeroBuildEditor.vue'
 import HeroBuildShareDialog from '@/components/HeroBuildShareDialog.vue'
 import HeroBuildDetailDialog from '@/components/HeroBuildDetailDialog.vue'
 import LoginDialog from '@/components/LoginDialog.vue'
+import UpgradeDialog from '@/components/UpgradeDialog.vue'
 import { defaultBuild, normalizeBuildData, decodeBuild } from '@/config/heroBuild'
 
 const store = useDataStore()
@@ -15,6 +16,7 @@ const $q = useQuasar()
 
 // ต้อง login (สมาชิก premium) จึงจะสร้าง/แก้บิ้วได้
 const showLogin = ref(false)
+const showUpgrade = ref(false)
 function requireLogin() {
   if (auth.isLoggedIn) return true
   $q.notify({ type: 'warning', message: '🔒 ต้องเข้าสู่ระบบด้วย Google เพื่อสร้าง/แก้ไขบิ้ว', timeout: 2500 })
@@ -25,7 +27,7 @@ function requireLogin() {
 function requirePremium() {
   if (!requireLogin()) return false
   if (auth.isPremium) return true
-  $q.notify({ type: 'warning', message: '⭐ ต้องเป็นสมาชิก Premium เพื่อแชร์บิ้วขึ้นรายการ (บันทึก/แชร์รูปได้ตามปกติ)', timeout: 3500 })
+  showUpgrade.value = true // เปิด dialog ชวนสมัคร Premium
   return false
 }
 
@@ -247,9 +249,11 @@ onMounted(() => {
       :publishing="publishing"
       @publish="onPublish"
       @load="onLoadCode"
+      @upgrade="showShare = false; showUpgrade = true"
     />
     <HeroBuildDetailDialog v-model="showDetail" :build="selectedBuild" />
     <LoginDialog v-model="showLogin" />
+    <UpgradeDialog v-model="showUpgrade" />
   </q-page>
 </template>
 

@@ -4,6 +4,7 @@ import { useQuasar } from 'quasar'
 import AppSidebar from '@/components/AppSidebar.vue'
 import LoginDialog from '@/components/LoginDialog.vue'
 import DonateDialog from '@/components/DonateDialog.vue'
+import UpgradeDialog from '@/components/UpgradeDialog.vue'
 import { useDataStore } from '@/stores/dataStore'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -13,6 +14,7 @@ const auth = useAuthStore()
 const drawerOpen = ref(true)
 const showLogin = ref(false)
 const showDonate = ref(false)
+const showUpgrade = ref(false)
 
 function toggleDrawer() {
   drawerOpen.value = !drawerOpen.value
@@ -119,6 +121,10 @@ onMounted(() => {
                 </q-item-section>
               </q-item>
               <q-separator />
+              <q-item v-if="!auth.isPremium" clickable v-close-popup @click="showUpgrade = true">
+                <q-item-section avatar><q-icon name="workspace_premium" color="amber-5" /></q-item-section>
+                <q-item-section class="text-amber-4 text-weight-bold">อัปเกรด Premium</q-item-section>
+              </q-item>
               <q-item clickable v-close-popup @click="doLogout">
                 <q-item-section avatar><q-icon name="logout" color="red-4" /></q-item-section>
                 <q-item-section class="text-red-4">ออกจากระบบ</q-item-section>
@@ -131,6 +137,7 @@ onMounted(() => {
 
     <LoginDialog v-model="showLogin" />
     <DonateDialog v-model="showDonate" />
+    <UpgradeDialog v-model="showUpgrade" />
 
     <q-drawer
       v-model="drawerOpen"

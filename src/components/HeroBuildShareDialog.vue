@@ -14,7 +14,7 @@ const props = defineProps({
   canPublish: { type: Boolean, default: true }, // เผยแพร่ขึ้นรายการได้ไหม (= Premium)
   publishing: { type: Boolean, default: false },
 })
-const emit = defineEmits(['update:modelValue', 'publish', 'load'])
+const emit = defineEmits(['update:modelValue', 'publish', 'load', 'upgrade'])
 const show = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) })
 
 const $q = useQuasar()
@@ -82,6 +82,7 @@ function copyLink() {
   copy(url, '🔗 คัดลอกลิงก์แล้ว — ส่งให้เพื่อนเปิดดูบิ้วได้ทันที')
 }
 function doPublish() {
+  if (!props.canPublish) { emit('upgrade'); return } // ไม่ใช่ premium → ชวนสมัคร
   if (!name.value.trim()) {
     $q.notify({ type: 'warning', message: 'กรุณาตั้งชื่อบิ้ว' })
     return
@@ -135,9 +136,10 @@ function doLoad() {
           </q-banner>
           <div class="row q-gutter-sm">
             <q-btn
-              unelevated :color="canPublish ? 'purple-6' : 'grey-7'" no-caps
-              :icon="canPublish ? 'public' : 'workspace_premium'" label="เผยแพร่"
-              :disable="!canPublish" :loading="publishing" @click="doPublish"
+              unelevated :color="canPublish ? 'purple-6' : 'amber-8'" no-caps
+              :icon="canPublish ? 'public' : 'workspace_premium'"
+              :label="canPublish ? 'เผยแพร่' : 'เผยแพร่ (Premium)'"
+              :loading="publishing" @click="doPublish"
             />
             <q-btn outline color="grey-4" no-caps icon="content_copy" label="คัดลอกโค้ด" @click="copyCode" />
             <q-btn outline color="blue-4" no-caps icon="link" label="คัดลอกลิงก์" @click="copyLink" />
