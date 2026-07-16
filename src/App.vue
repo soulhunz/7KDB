@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import AppSidebar from '@/components/AppSidebar.vue'
 import LoginDialog from '@/components/LoginDialog.vue'
+import DonateDialog from '@/components/DonateDialog.vue'
 import { useDataStore } from '@/stores/dataStore'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -11,6 +12,7 @@ const store = useDataStore()
 const auth = useAuthStore()
 const drawerOpen = ref(true)
 const showLogin = ref(false)
+const showDonate = ref(false)
 
 function toggleDrawer() {
   drawerOpen.value = !drawerOpen.value
@@ -87,6 +89,11 @@ onMounted(() => {
           <q-tooltip>เผยแพร่ snapshot (admin) — ดาวน์โหลด data.json</q-tooltip>
         </q-btn>
 
+        <!-- Donate (ทุกคนกดได้ ไม่ต้อง login) -->
+        <q-btn flat dense round icon="favorite" color="pink-4" class="q-ml-xs" @click="showDonate = true">
+          <q-tooltip>สนับสนุน (Donate)</q-tooltip>
+        </q-btn>
+
         <!-- ===== Login / User (มุมขวา) ===== -->
         <q-btn v-if="!auth.isLoggedIn" flat dense no-caps icon="login" label="เข้าสู่ระบบ" class="q-ml-sm" @click="showLogin = true" />
         <q-btn v-else flat dense round class="q-ml-sm">
@@ -119,6 +126,7 @@ onMounted(() => {
     </q-header>
 
     <LoginDialog v-model="showLogin" />
+    <DonateDialog v-model="showDonate" />
 
     <q-drawer
       v-model="drawerOpen"
