@@ -130,9 +130,11 @@ function del(t) {
                 <img v-if="heroById[h]" :src="heroById[h].img" @error="onErr" :title="heroById[h].name" />
                 <span v-else class="wt-mini-empty">·</span>
               </div>
-              <div v-if="petById[t.pet]" class="wt-mini wt-mini-pet">
-                <img :src="petById[t.pet].img" @error="onErr" :title="petById[t.pet].name" />
-              </div>
+              <template v-for="(p, pi) in (t.pets || [])" :key="'p' + pi">
+                <div v-if="petById[p]" class="wt-mini wt-mini-pet">
+                  <img :src="petById[p].img" @error="onErr" :title="petById[p].name" />
+                </div>
+              </template>
               <q-space />
               <q-badge outline color="blue-grey-4" :label="formationName(t.formation)" />
             </div>

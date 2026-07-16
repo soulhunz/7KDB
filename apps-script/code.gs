@@ -6,7 +6,7 @@ var VIDEO_FOLDER_ID = '1jTnrjTdNLtw9E58TB_sQ5ShELr-6uPrY'; // โฟลเดอ
 var SKILL_FOLDER_ID = '12S_ycyylGP6T3oQVLtwkoRJwUNVmM-33'; // โฟลเดอร์เก็บไอคอน/รูปสกิลของตัวละคร
 var EQUIP_FOLDER_ID = '14Ci7SczLyh1rg071_jMIP03j0DjSu5Ki'; // โฟลเดอร์เก็บรูปอุปกรณ์ (เซ็ตอุปกรณ์)
 var HERO_IMAGE_FOLDER_ID = '1dg4tEQHjhnRd41hqxI2S8oLh-Fv0uR2M'; // โฟลเดอร์เก็บรูปฮีโร่ (Normal/Awakening)
-var SERVER_VERSION = "6.0.2"; // Updated Version
+var SERVER_VERSION = "6.0.3"; // Updated Version
 
 // 1. ส่วนเปิดหน้าเว็บ
 function doGet(e) {
@@ -326,7 +326,7 @@ function doPost(e) {
       var wTeams = loadWarTeams_(ss).filter(function (t) { return warCanView_(t, wEmail); }).map(function (t) {
         var owner = warNorm_(t.owner) === wEmail;
         return {
-          id: t.id, name: t.name, type: t.type, formation: t.formation, heroes: t.heroes, pet: t.pet,
+          id: t.id, name: t.name, type: t.type, formation: t.formation, heroes: t.heroes, pets: t.pets,
           skillQueue: t.skillQueue, skillQueueAlts: t.skillQueueAlts, note: t.note,
           owner: t.owner, visibility: t.visibility, updatedAt: t.updatedAt,
           canEdit: warCanEdit_(t, wEmail), isOwner: owner,
@@ -1677,7 +1677,7 @@ function checkUserTier_(ss, email) {
 // คอลัมน์: ID | Name | Type | Heroes_JSON | Pet | Note | Owner | Visibility | AllowedEmails | EditorEmails | UpdatedAt
 //   Type: 'attack' | 'defense'  ·  Visibility: 'public' | 'restricted'
 // =========================================================
-var WAR_HEADERS = ['ID', 'Name', 'Type', 'Formation', 'Heroes_JSON', 'Pet', 'SkillQueue_JSON', 'SkillQueueAlts_JSON', 'Note', 'Owner', 'Visibility', 'AllowedEmails', 'EditorEmails', 'UpdatedAt'];
+var WAR_HEADERS = ['ID', 'Name', 'Type', 'Formation', 'Heroes_JSON', 'Pets_JSON', 'SkillQueue_JSON', 'SkillQueueAlts_JSON', 'Note', 'Owner', 'Visibility', 'AllowedEmails', 'EditorEmails', 'UpdatedAt'];
 
 function getWarTeamsSheet_(ss) {
   var s = ss.getSheetByName('WarTeams');
@@ -1694,7 +1694,7 @@ function warParse_(v, d) { try { return JSON.parse(v || d); } catch (e) { return
 function warRowToObj_(r) {
   return {
     id: String(r[0] || ''), name: r[1] || '', type: r[2] || 'attack', formation: r[3] || 'basic',
-    heroes: warParse_(r[4], '[]'), pet: r[5] || '',
+    heroes: warParse_(r[4], '[]'), pets: warParse_(r[5], '[]'),
     skillQueue: warParse_(r[6], '[]'), skillQueueAlts: warParse_(r[7], '[]'), note: r[8] || '',
     owner: r[9] || '', visibility: r[10] || 'public',
     allowedEmails: warParse_(r[11], '[]'), editorEmails: warParse_(r[12], '[]'),
@@ -1703,7 +1703,7 @@ function warRowToObj_(r) {
 }
 function warObjToRow_(t) {
   return [String(t.id), t.name || '', t.type || 'attack', t.formation || 'basic',
-    JSON.stringify(t.heroes || []), t.pet || '', JSON.stringify(t.skillQueue || []), JSON.stringify(t.skillQueueAlts || []),
+    JSON.stringify(t.heroes || []), JSON.stringify(t.pets || []), JSON.stringify(t.skillQueue || []), JSON.stringify(t.skillQueueAlts || []),
     t.note || '', t.owner || '', t.visibility || 'public',
     JSON.stringify(t.allowedEmails || []), JSON.stringify(t.editorEmails || []),
     String(t.updatedAt || new Date().getTime())];
