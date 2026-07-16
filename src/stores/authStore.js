@@ -1,44 +1,48 @@
-// ระบบล็อกอิน (ทั่วไป) — ใช้ action login ของ Apps Script (Users sheet)
-// เก็บ session ใน localStorage เพื่อคง login ข้ามการรีเฟรช
+// ระบบล็อกอินผ่าน Google (Google Identity Services)
+// - ทุกคน login ผ่าน Google ได้ (ฟรี)
+// - สิทธิ์ Premium (แชร์บิ้วขึ้นรายการ) เช็คจาก PREMIUM_EMAILS/ADMIN_EMAILS (ชั่วคราว) — ย้ายไป backend ได้ภายหลัง
+// - เก็บ session ใน localStorage เพื่อคง login ข้ามการรีเฟรช
 import { defineStore } from 'pinia'
-import { api } from '@/api'
+import { PREMIUM_EMAILS, ADMIN_EMAILS } from '@/config/auth'
 
-const AUTH_KEY = '7kdb_auth_v1'
+const AUTH_KEY = '7kdb_auth_v2'
+
+// ถอด payload จาก Google JWT (id token) เพื่อดึง email/name/picture
+function decodeJwt(token) {
+  try {
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const json = decodeURIComponent(
+      atob(base64).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+    )
+    return JSON.parse(json)
+  } catch {
+    return null
+  }
+}
+
+const norm = (e) => String(e || '').trim().toLowerCase()
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: null, // { id, name, role, permissions, guild_name }
-    loading: false,
-    error: null,
+    user: null, // { id, email, name, picture }
     hydrated: false,
   }),
 
   getters: {
     isLoggedIn: (s) => !!s.user,
-    displayName: (s) => (s.user ? s.user.name || s.user.id : ''),
-    isAdmin: (s) => s.user?.role === 'admin',
+    displayName: (s) => (s.user ? s.user.name || s.user.email : ''),
+    picture: (s) => s.user?.picture || '',
+    isAdmin: (s) => !!s.user && ADMIN_EMAILS.map(norm).includes(norm(s.user.email)),
 
-    // ---- ระดับสมาชิก (เผื่อระบบ VIP/Premium ในอนาคต) ----
-    // อ่านจาก field user.tier/plan ถ้ามี, admin ถือเป็น premium, ที่เหลือ = free
-    tier: (s) => {
-      if (!s.user) return 'guest'
-      const t = String(s.user.tier || s.user.plan || '').toLowerCase()
-      if (t) return t
-      if (s.user.role === 'admin') return 'premium'
+    // ระดับสมาชิก: guest → free → premium (เผื่อ VIP/Premium)
+    tier() {
+      if (!this.user) return 'guest'
+      if (this.isAdmin) return 'premium'
+      if (PREMIUM_EMAILS.map(norm).includes(norm(this.user.email))) return 'premium'
       return 'free'
-    },
-    isVip() {
-      return this.tier === 'vip' || this.tier === 'premium'
     },
     isPremium() {
       return this.tier === 'premium'
-    },
-    // เช็คสิทธิ์แบบยืดหยุ่น — ใช้ทั้ง permissions array และ tier
-    can: (s) => (feature) => {
-      if (!s.user) return false
-      if (s.user.role === 'admin') return true
-      const perms = Array.isArray(s.user.permissions) ? s.user.permissions : []
-      return perms.includes(feature)
     },
   },
 
@@ -54,29 +58,19 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async login(username, password) {
-      this.loading = true
-      this.error = null
-      try {
-        const res = await api.login(username, password)
-        if (res && res.status === 'success' && res.user) {
-          this.user = res.user
-          try { localStorage.setItem(AUTH_KEY, JSON.stringify(res.user)) } catch { /* ignore */ }
-          return true
-        }
-        this.error = res?.message || 'เข้าสู่ระบบไม่สำเร็จ'
-        return false
-      } catch (e) {
-        this.error = e?.message || String(e)
-        return false
-      } finally {
-        this.loading = false
-      }
+    // รับ credential (JWT) จาก Google Identity Services
+    loginWithGoogleCredential(credential) {
+      const p = decodeJwt(credential)
+      if (!p || !p.email) throw new Error('ไม่สามารถอ่านข้อมูลบัญชี Google')
+      this.user = { id: p.sub, email: p.email, name: p.name || p.email, picture: p.picture || '' }
+      try { localStorage.setItem(AUTH_KEY, JSON.stringify(this.user)) } catch { /* ignore */ }
+      return this.user
     },
 
     logout() {
       this.user = null
       try { localStorage.removeItem(AUTH_KEY) } catch { /* ignore */ }
+      try { window.google?.accounts?.id?.disableAutoSelect?.() } catch { /* ignore */ }
     },
   },
 })

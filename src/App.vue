@@ -98,19 +98,23 @@ onMounted(() => {
         <q-btn v-if="!auth.isLoggedIn" flat dense no-caps icon="login" label="เข้าสู่ระบบ" class="q-ml-sm" @click="showLogin = true" />
         <q-btn v-else flat dense round class="q-ml-sm">
           <q-avatar size="28px" color="primary" text-color="white">
-            {{ (auth.displayName[0] || '?').toUpperCase() }}
+            <img v-if="auth.picture" :src="auth.picture" referrerpolicy="no-referrer" />
+            <template v-else>{{ (auth.displayName[0] || '?').toUpperCase() }}</template>
           </q-avatar>
           <q-menu anchor="bottom right" self="top right">
-            <q-list style="min-width: 180px">
+            <q-list style="min-width: 220px">
               <q-item>
                 <q-item-section avatar>
-                  <q-avatar color="primary" text-color="white">{{ (auth.displayName[0] || '?').toUpperCase() }}</q-avatar>
+                  <q-avatar color="primary" text-color="white">
+                    <img v-if="auth.picture" :src="auth.picture" referrerpolicy="no-referrer" />
+                    <template v-else>{{ (auth.displayName[0] || '?').toUpperCase() }}</template>
+                  </q-avatar>
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label class="text-weight-bold">{{ auth.displayName }}</q-item-label>
-                  <q-item-label caption>
-                    <q-badge :color="auth.isPremium ? 'amber-8' : auth.isVip ? 'deep-purple-5' : 'blue-grey'"
-                      :label="auth.tier.toUpperCase()" />
+                  <q-item-label class="text-weight-bold ellipsis">{{ auth.displayName }}</q-item-label>
+                  <q-item-label caption class="ellipsis">{{ auth.user.email }}</q-item-label>
+                  <q-item-label class="q-mt-xs">
+                    <q-badge :color="auth.isPremium ? 'amber-8' : 'blue-grey'" :label="auth.tier.toUpperCase()" />
                   </q-item-label>
                 </q-item-section>
               </q-item>

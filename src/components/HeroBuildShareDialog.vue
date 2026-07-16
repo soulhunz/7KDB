@@ -11,6 +11,7 @@ const props = defineProps({
   build: { type: Object, default: null }, // build.data ปัจจุบัน (สำหรับ encode ตอน save)
   defaultName: { type: String, default: '' },
   owner: { type: String, default: '' }, // ผู้สร้าง = ผู้ใช้ที่ login (ล็อกไว้)
+  canPublish: { type: Boolean, default: true }, // เผยแพร่ขึ้นรายการได้ไหม (= Premium)
   publishing: { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:modelValue', 'publish', 'load'])
@@ -128,10 +129,15 @@ function doLoad() {
             <template #prepend><q-icon name="person" /></template>
           </q-input>
           <q-input v-model="code" type="textarea" rows="3" dense outlined dark readonly label="โค้ดบิ้ว" class="hb-code q-mb-sm" />
+          <q-banner v-if="!canPublish" class="bg-amber-9 text-white q-mb-sm" rounded dense>
+            <template #avatar><q-icon name="workspace_premium" /></template>
+            เผยแพร่ขึ้นรายการต้องเป็นสมาชิก <b>Premium</b> — แต่คัดลอกโค้ด/ลิงก์ และแชร์เป็นรูปได้ตามปกติ
+          </q-banner>
           <div class="row q-gutter-sm">
             <q-btn
-              unelevated color="purple-6" no-caps icon="public" label="เผยแพร่"
-              :loading="publishing" @click="doPublish"
+              unelevated :color="canPublish ? 'purple-6' : 'grey-7'" no-caps
+              :icon="canPublish ? 'public' : 'workspace_premium'" label="เผยแพร่"
+              :disable="!canPublish" :loading="publishing" @click="doPublish"
             />
             <q-btn outline color="grey-4" no-caps icon="content_copy" label="คัดลอกโค้ด" @click="copyCode" />
             <q-btn outline color="blue-4" no-caps icon="link" label="คัดลอกลิงก์" @click="copyLink" />

@@ -17,8 +17,15 @@ const $q = useQuasar()
 const showLogin = ref(false)
 function requireLogin() {
   if (auth.isLoggedIn) return true
-  $q.notify({ type: 'warning', message: '🔒 ต้องเข้าสู่ระบบ (สมาชิก) เพื่อสร้าง/แก้ไขบิ้ว', timeout: 2500 })
+  $q.notify({ type: 'warning', message: '🔒 ต้องเข้าสู่ระบบด้วย Google เพื่อสร้าง/แก้ไขบิ้ว', timeout: 2500 })
   showLogin.value = true
+  return false
+}
+// แชร์บิ้วขึ้นรายการ = ต้องเป็นสมาชิก Premium
+function requirePremium() {
+  if (!requireLogin()) return false
+  if (auth.isPremium) return true
+  $q.notify({ type: 'warning', message: '⭐ ต้องเป็นสมาชิก Premium เพื่อแชร์บิ้วขึ้นรายการ (บันทึก/แชร์รูปได้ตามปกติ)', timeout: 3500 })
   return false
 }
 
@@ -121,7 +128,7 @@ function onLoadCode(data) {
 }
 
 async function onPublish({ name }) {
-  if (!requireLogin()) return
+  if (!requirePremium()) return
   if (!editorBuild.heroId) { $q.notify({ type: 'warning', message: 'เลือกตัวละครก่อน' }); return }
   publishing.value = true
   const data = JSON.parse(JSON.stringify(editorBuild))
@@ -236,6 +243,7 @@ onMounted(() => {
       :build="editorBuild"
       :default-name="defaultName"
       :owner="auth.displayName"
+      :can-publish="auth.isPremium"
       :publishing="publishing"
       @publish="onPublish"
       @load="onLoadCode"
