@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useDataStore } from '@/stores/dataStore'
+import { sortByRarityThenName } from '@/config/rarity'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -27,16 +28,14 @@ const accent = computed(() =>
 const items = computed(() => {
   const q = search.value.trim().toLowerCase()
   if (props.mode === 'hero') {
-    return store.heroes
-      .filter((h) => !q || String(h.name || '').toLowerCase().includes(q))
-      .slice()
-      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th'))
+    return sortByRarityThenName(
+      store.heroes.filter((h) => !q || String(h.name || '').toLowerCase().includes(q)),
+    )
   }
   if (props.mode === 'pet') {
-    return store.pets
-      .filter((p) => !q || String(p.name || '').toLowerCase().includes(q))
-      .slice()
-      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th'))
+    return sortByRarityThenName(
+      store.pets.filter((p) => !q || String(p.name || '').toLowerCase().includes(q)),
+    )
   }
   return store.equipSets.filter(
     (s) => !String(s.name || '').includes('ยำ') && (!q || String(s.name || '').toLowerCase().includes(q)),
