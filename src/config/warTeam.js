@@ -9,12 +9,19 @@ export const FORMATIONS = [
 export const formationDef = (id) => FORMATIONS.find((f) => f.id === id) || FORMATIONS[0]
 export const formationName = (id) => formationDef(id).name
 
-// สกิลที่ใส่ในคอมโบได้ (ลำดับการปล่อยสกิล)
+// สกิลที่ใส่ในคอมโบได้ — เฉพาะสกิล 1 / สกิล 2 / สกิลตื่นรู้
+export const QUEUE_SIZE = 3
 export const QUEUE_SKILLS = [
-  { key: 'n', label: 'ปกติ', color: 'blue-grey' },
   { key: 's1', label: 'สกิล 1', color: 'orange' },
   { key: 's2', label: 'สกิล 2', color: 'deep-purple' },
-  { key: 'p', label: 'พาสซีฟ', color: 'teal' },
+  { key: 'aw', label: 'สกิลตื่นรู้', color: 'amber' },
 ]
 export const skillLabel = (k) => QUEUE_SKILLS.find((s) => s.key === k)?.label || k
 export const skillColor = (k) => QUEUE_SKILLS.find((s) => s.key === k)?.color || 'grey'
+
+/** คิวสกิล 1 แบบ = 3 ช่องเสมอ */
+export function fixSkillQueue(q) {
+  const a = Array.isArray(q) ? q.slice(0, QUEUE_SIZE) : []
+  while (a.length < QUEUE_SIZE) a.push(null)
+  return a
+}

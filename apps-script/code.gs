@@ -1691,10 +1691,22 @@ function getWarTeamsSheet_(ss) {
   return s;
 }
 function warParse_(v, d) { try { return JSON.parse(v || d); } catch (e) { return JSON.parse(d); } }
+function warParseHeroes_(raw) {
+  var h = warParse_(raw, '[]');
+  if (Array.isArray(h)) return { heroes: h, heroAwakened: [] };
+  return {
+    heroes: Array.isArray(h && h.ids) ? h.ids : [],
+    heroAwakened: Array.isArray(h && h.awakened) ? h.awakened : [],
+  };
+}
+function warHeroesJson_(t) {
+  return JSON.stringify({ ids: t.heroes || [], awakened: t.heroAwakened || [] });
+}
 function warRowToObj_(r) {
+  var heroesPack = warParseHeroes_(r[4]);
   return {
     id: String(r[0] || ''), name: r[1] || '', type: r[2] || 'attack', formation: r[3] || 'basic',
-    heroes: warParse_(r[4], '[]'), pets: warParse_(r[5], '[]'),
+    heroes: heroesPack.heroes, heroAwakened: heroesPack.heroAwakened, pets: warParse_(r[5], '[]'),
     skillQueue: warParse_(r[6], '[]'), skillQueueAlts: warParse_(r[7], '[]'), note: r[8] || '',
     owner: r[9] || '', visibility: r[10] || 'public',
     allowedEmails: warParse_(r[11], '[]'), editorEmails: warParse_(r[12], '[]'),
@@ -1703,7 +1715,7 @@ function warRowToObj_(r) {
 }
 function warObjToRow_(t) {
   return [String(t.id), t.name || '', t.type || 'attack', t.formation || 'basic',
-    JSON.stringify(t.heroes || []), JSON.stringify(t.pets || []), JSON.stringify(t.skillQueue || []), JSON.stringify(t.skillQueueAlts || []),
+    warHeroesJson_(t), JSON.stringify(t.pets || []), JSON.stringify(t.skillQueue || []), JSON.stringify(t.skillQueueAlts || []),
     t.note || '', t.owner || '', t.visibility || 'public',
     JSON.stringify(t.allowedEmails || []), JSON.stringify(t.editorEmails || []),
     String(t.updatedAt || new Date().getTime())];

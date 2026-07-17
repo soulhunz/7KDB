@@ -50,6 +50,7 @@ export default defineConfig(({ command }) => ({
     },
   },
   server: {
+    host: true, // ให้มือถือใน Wi‑Fi เดียวกันเข้าได้
     port: 5173,
     open: true,
   },

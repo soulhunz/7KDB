@@ -126,8 +126,13 @@ function del(t) {
           </q-card-section>
           <q-card-section class="q-pt-none">
             <div class="row items-center q-gutter-xs">
-              <div v-for="(h, i) in t.heroes" :key="i" class="wt-mini">
-                <img v-if="heroById[h]" :src="heroById[h].img" @error="onErr" :title="heroById[h].name" />
+              <div v-for="(h, i) in t.heroes" :key="i" class="wt-mini" :class="{ awk: t.heroAwakened?.[i] }">
+                <img
+                  v-if="heroById[h]"
+                  :src="(t.heroAwakened?.[i] && heroById[h].img2) ? heroById[h].img2 : heroById[h].img"
+                  @error="onErr"
+                  :title="heroById[h].name"
+                />
                 <span v-else class="wt-mini-empty">·</span>
               </div>
               <template v-for="(p, pi) in (t.pets || [])" :key="'p' + pi">
@@ -172,6 +177,7 @@ function del(t) {
 
 <style scoped>
 .wt-mini { width: 46px; height: 46px; border-radius: 8px; overflow: hidden; border: 1px solid #2a3441; background: #000; display: flex; align-items: center; justify-content: center; }
+.wt-mini.awk { border-color: #a855f7; }
 .wt-mini img { width: 100%; height: 100%; object-fit: cover; }
 .wt-mini-empty { color: #374151; }
 .wt-mini-pet { border-color: #22c55e55; }

@@ -5,8 +5,10 @@ import { sortByRarityThenName } from '@/config/rarity'
 
 const props = defineProps({
   modelValue: Boolean,
-  mode: { type: String, default: 'hero' }, // 'hero' | 'set'
+  mode: { type: String, default: 'hero' }, // 'hero' | 'set' | 'pet'
   currentId: { type: [String, Number], default: '' },
+  /** ไอดีที่อยู่ช่องอื่นแล้ว — ยังเลือกได้ (จะสลับตำแหน่ง) */
+  placedIds: { type: Array, default: () => [] },
 })
 const emit = defineEmits(['update:modelValue', 'pick'])
 const show = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) })
@@ -24,6 +26,13 @@ const title = computed(() =>
 const accent = computed(() =>
   props.mode === 'hero' ? '#3b82f6' : props.mode === 'pet' ? '#22c55e' : '#06b6d4'
 )
+const placedSet = computed(() => {
+  const cur = String(props.currentId || '')
+  return new Set((props.placedIds || []).map(String).filter((id) => id && id !== cur))
+})
+function isPlacedElsewhere(id) {
+  return placedSet.value.has(String(id))
+}
 
 const items = computed(() => {
   const q = search.value.trim().toLowerCase()
@@ -57,7 +66,7 @@ function pick(id) {
         <q-btn flat round dense icon="close" color="white" v-close-popup />
       </div>
       <div class="q-px-md q-pb-sm">
-        <q-input v-model="search" dense outlined dark autofocus clearable placeholder="ค้นหา..." >
+        <q-input v-model="search" dense outlined dark clearable placeholder="ค้นหา..." >
           <template #prepend><q-icon name="search" /></template>
         </q-input>
       </div>
@@ -72,6 +81,7 @@ function pick(id) {
             v-for="it in items"
             :key="it.id"
             class="picker-item"
+            :class="{ swap: isPlacedElsewhere(it.id) }"
             @click="pick(it.id)"
           >
             <div
@@ -79,8 +89,10 @@ function pick(id) {
               :style="String(currentId) === String(it.id) ? { boxShadow: `0 0 0 2px ${accent}` } : {}"
             >
               <img :src="it.img || FALLBACK" @error="onErr" loading="lazy" />
+              <span v-if="isPlacedElsewhere(it.id)" class="picker-swap-badge">สลับ</span>
             </div>
             <div class="picker-name" :title="it.name">{{ it.name }}</div>
+            <q-tooltip v-if="isPlacedElsewhere(it.id)">กดเพื่อสลับตำแหน่งกับช่องนี้</q-tooltip>
           </div>
         </div>
         <div v-if="!items.length" class="text-center text-grey-6 q-py-lg">ไม่พบรายการ</div>
@@ -106,6 +118,7 @@ function pick(id) {
 .picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 12px; }
 .picker-item { cursor: pointer; }
 .picker-img {
+  position: relative;
   aspect-ratio: 1;
   border-radius: 10px;
   border: 1px solid #30363d;
@@ -114,7 +127,21 @@ function pick(id) {
   transition: border-color 0.12s ease;
 }
 .picker-item:hover .picker-img { border-color: #60a5fa; }
+.picker-item.swap .picker-img { border-color: #f59e0b; }
 .picker-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.picker-swap-badge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 2px 0;
+  background: rgba(245, 158, 11, 0.92);
+  color: #111;
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.2;
+}
 .picker-none { display: flex; align-items: center; justify-content: center; color: #4b5563; border-style: dashed; }
 .picker-name {
   font-size: 0.68rem;
